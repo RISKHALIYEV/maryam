@@ -4175,7 +4175,9 @@ Mavzu/ko'rsatma: "${topic}"`;
       err.modelNotFound = true;
       err.tryNextProvider = true;
     } else if(/failed to fetch|networkerror|offline|load failed/i.test(raw) && !/fetch-error/i.test(code)){
+      console.error("[Maryam] Gemini tarmoq xatosi:", code, raw, e);
       err = networkError();
+      err.message = err.message + " [" + (code || "net") + ": " + raw.replace(/\s+/g, " ").slice(0, 90) + "]";
     } else {
       console.error("[Maryam] Gemini xatosi:", code, raw, e);
       const shortCode = (code || "noma'lum").replace(/^AI\//, "AI/").slice(0, 40);
