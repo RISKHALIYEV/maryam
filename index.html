@@ -145,7 +145,7 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
           systemInstruction,
           generationConfig: { temperature }
         });
-        const result = await raceAbort(gm.generateContentStream({ contents }, signal ? { signal } : undefined), signal);
+        const result = await raceAbort(gm.generateContentStream(contents), signal);
         for await (const chunk of result.stream) {
           if (signal && signal.aborted) break;
           let text = "";
@@ -1119,7 +1119,7 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
   const PROVIDERS = {
     gemini:{ label:"Gemini", full:"Google Gemini", keyPlaceholder:"AIzaSy...", helpUrl:"https://aistudio.google.com/apikey",
       models:[
-        {id:"gemini-flash-latest", label:"gemini-flash-latest — tavsiya etiladi"},
+        {id:"gemini-3.8-flash", label:"gemini-3.8-flash — tavsiya etiladi"},
         {id:"gemini-3.5-flash", label:"gemini-3.5-flash — tez va zamonaviy"},
         {id:"gemini-3-pro-preview", label:"gemini-3-pro-preview — kuchliroq"},
         {id:"gemini-3.5-flash-lite", label:"gemini-3.5-flash-lite — eng arzon"}
@@ -1383,7 +1383,7 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
   };
 
   let apiKeys = { gemini:"", openai:"", claude:"", groq:"", deepseek:"", openrouter:"", cerebras:"", mistral:"", huggingface:"", ollama:"" };
-  let models = { gemini:"gemini-flash-latest", openai:"gpt-5.5", claude:"claude-sonnet-5", groq:"openai/gpt-oss-120b", deepseek:"deepseek-v4-flash", openrouter:"deepseek/deepseek-r1:free", cerebras:"gpt-oss-120b", mistral:"mistral-small-latest", huggingface:"", ollama:"llama3.2" };
+  let models = { gemini:"gemini-3.8-flash", openai:"gpt-5.5", claude:"claude-sonnet-5", groq:"openai/gpt-oss-120b", deepseek:"deepseek-v4-flash", openrouter:"deepseek/deepseek-r1:free", cerebras:"gpt-oss-120b", mistral:"mistral-small-latest", huggingface:"", ollama:"llama3.2" };
   let providerBaseUrls = { ollama: PROVIDERS.ollama.defaultBaseUrl };
   let isSending = false;
   let currentAbortController = null;
@@ -2607,6 +2607,16 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
 
   // Gemini endi API kalit bilan emas — Firebase AI Logic orqali, foydalanuvchining Google hisobi bilan ishlaydi.
   const geminiModelMap = {};
+  function normalizeGeminiModel(model){
+    const m = String(model || "").trim();
+    // Eski versiyalarda saqlangan/endi mavjud bo'lmagan nomlarni
+    // Firebase AI Logic uchun ishlaydigan modelga o'tkazamiz.
+    if(!m || /gemini-flash-latest|gemini-3\.5-flash|gemini-3\.6-flash|gemini-3-pro-preview|gemini-3\.5-flash-lite/i.test(m)){
+      return "gemini-3.8-flash";
+    }
+    return m;
+  }
+
   async function streamGeminiProvider(messages, key, model, onDelta){
     if(!currentUser || !fbApi || !fbApi.aiAvailable){
       throw new Error("Gemini’dan foydalanish uchun Google hisobingiz bilan kiring (yoki sahifani qayta oching).");
@@ -2618,7 +2628,7 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
     const signal = currentAbortController ? currentAbortController.signal : undefined;
     const system = buildSystemPrompt();
     const tried = [];
-    let candidate = geminiModelMap[model] || model;
+    let candidate = geminiModelMap[model] || normalizeGeminiModel(model);
     let full = "";
     while(true){
       tried.push(candidate);
@@ -3965,7 +3975,7 @@ Mavzu/ko'rsatma: "${topic}"`;
   const TERMS_URL = "";
 
   const DEFAULT_MODELS = Object.assign({}, models);
-  const GEMINI_FALLBACK_MODELS = ["gemini-3.5-flash", "gemini-3.6-flash"];
+  const GEMINI_FALLBACK_MODELS = ["gemini-3.8-flash"];
   const IMAGE_MODEL = "gemini-3.1-flash-image";
   const LEGACY_ADOPTED_KEY = "maryam_legacy_adopted_v1";
   const SYNCED_IDS_KEY = "maryam_synced_ids_v1";
@@ -4535,6 +4545,7 @@ Mavzu/ko'rsatma: "${topic}"`;
         apiKeys.gemini = "";
       }catch(e){}
     }
+    if(providerKey === "gemini") models.gemini = normalizeGeminiModel(models.gemini);
     buildProviderQuickSelect();
     updateStatusUI();
 
