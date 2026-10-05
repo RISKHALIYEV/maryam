@@ -849,6 +849,31 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
   .gemini-account-note{font-size:13px; line-height:1.5; color:var(--text-muted); background:var(--accent-soft); border:1px solid var(--accent-soft-strong); border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:12px;}
   .legal-text{font-size:13.5px; line-height:1.6; color:var(--text-muted); margin:0 0 6px;}
   .provider-select, #providerQuickSelect, .provider-tabs, #providerTabs{display:none !important;}
+  #menuImageBtn{display:none !important;}
+  /* O'chirilgan funksiyalar: taqdimot (PDF), motion dizayn, GitHub/havoladan olish */
+  #menuPdfBtn,#menuConnectorBtn{display:none !important;}
+  /* ============ Ishlash holati kartasi (Maryam ishlayotganda) ============ */
+  .work-card{display:flex; flex-direction:column; gap:12px; min-width:0; white-space:normal; font-family:var(--sans);}
+  .work-head,.work-step{display:flex; align-items:center; gap:10px; min-width:0; color:var(--text-muted);}
+  .work-head{font-size:14.5px;}
+  .work-head svg.work-ico{width:18px; height:18px; flex-shrink:0; opacity:.85;}
+  .work-title,.work-step-text{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;}
+  .work-chev{width:14px; height:14px; flex-shrink:0; opacity:.55;}
+  .work-step{font-size:15.5px; padding-left:4px;}
+  .work-dots{display:inline-flex; gap:3px; width:18px; flex-shrink:0; justify-content:center;}
+  .work-dots i{width:4px; height:4px; border-radius:50%; background:var(--accent); display:block; animation:workPulse 1.2s infinite ease-in-out;}
+  .work-dots i:nth-child(2){animation-delay:.18s;} .work-dots i:nth-child(3){animation-delay:.36s;}
+  .shimmer{
+    background:linear-gradient(90deg,var(--text-faint) 0%,var(--text) 42%,var(--text-faint) 84%); background-size:240% 100%;
+    -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent;
+    animation:workShimmer 2.1s linear infinite;
+  }
+  .work-still{font-size:14.5px; color:var(--text-muted); padding-left:32px; opacity:0; max-height:0; overflow:hidden; transition:opacity .5s ease, max-height .5s ease;}
+  .work-still.show{opacity:1; max-height:40px;}
+  @keyframes workPulse{0%,100%{opacity:.25; transform:translateY(0) scale(.8);} 50%{opacity:1; transform:translateY(-2px) scale(1.15);}}
+  @keyframes workShimmer{0%{background-position:130% 0;} 100%{background-position:-110% 0;}}
+  @media (prefers-reduced-motion:reduce){ .work-dots i,.shimmer{animation:none !important;} .shimmer{-webkit-text-fill-color:currentColor; color:var(--text-muted); background:none;} }
+
   .diag-out{font-size:12px; line-height:1.5; max-height:38vh; overflow:auto; border:1px solid var(--border-soft); border-radius:var(--radius-sm); padding:8px 10px; margin-bottom:8px; background:var(--bg-input); -webkit-overflow-scrolling:touch;}
   .diag-row{padding:3px 0; word-break:break-word; color:var(--text-muted);}
   .diag-row.bad{color:var(--danger);}
@@ -970,9 +995,9 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
         <svg class="orb-star" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0 L14.2 9.3 L24 12 L14.2 14.7 L12 24 L9.8 14.7 L0 12 L9.8 9.3 Z"/></svg>
       </div>
       <h1 class="auth-tagline">AI bilan g‘oyangizni haqiqatga aylantiring</h1>
-      <p class="auth-sub">Suhbat, taqdimot, PDF, kod va fayllar — bitta joyda.</p>
+      <p class="auth-sub">Suhbat, kod va fayllar — bitta joyda.</p>
       <ul class="auth-chips" aria-label="Imkoniyatlar">
-        <li>Suhbat</li><li>Taqdimot</li><li>PDF</li><li>Kod</li><li>Fayllar</li>
+        <li>Suhbat</li><li>Kod</li><li>Fayllar</li>
       </ul>
     </section>
 
@@ -2885,24 +2910,35 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
   }
 
   /* =================== LIVE (STREAMING) ASSISTANT ROW =================== */
+  const WORK_CLOCK = '<svg class="work-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" stroke-dasharray="2.6 2.6"/><path d="M12 7v5l3 2"/></svg>';
+  const WORK_CHEV = '<svg class="work-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
+  // Ishlash kartasi: sarlavha (soat belgisi) + qadam qatori (pulsatsiyalanuvchi nuqtalar + yaltiragan matn) + "Hali ishlayapman…"
+  function makeWorkCard(titleText, stepText){
+    const el = document.createElement("div"); el.className = "work-card";
+    el.innerHTML = `<div class="work-head">${WORK_CLOCK}<span class="work-title"></span>${WORK_CHEV}</div>` +
+      `<div class="work-step"><span class="work-dots"><i></i><i></i><i></i></span><span class="work-step-text shimmer"></span>${WORK_CHEV}</div>` +
+      `<div class="work-still"></div>`;
+    const t = el.querySelector(".work-title"), st = el.querySelector(".work-step-text"), still = el.querySelector(".work-still");
+    t.textContent = titleText; st.textContent = stepText;
+    const timers = [
+      setTimeout(() => { still.textContent = "Hali ishlayapman…"; still.classList.add("show"); }, 9000),
+      setTimeout(() => { still.textContent = "Hali ishlayapman — bu biroz vaqt olishi mumkin…"; }, 28000)
+    ];
+    return {
+      el,
+      setTitle(x){ if(t.textContent !== x) t.textContent = x; },
+      setStep(x){ if(st.textContent !== x) st.textContent = x; },
+      stop(){ timers.forEach(clearTimeout); }
+    };
+  }
+
   function createLiveRow(userText){
     const row = document.createElement("div");
     row.className = "assistant-block";
     const av = document.createElement("div"); av.className = "avatar"; av.innerHTML = assistantAvatarSvg();
     const txt = document.createElement("div"); txt.className = "assistant-text";
-    const waitWrap = document.createElement("span");
-    waitWrap.style.display = "inline-flex";
-    waitWrap.style.alignItems = "center";
-    waitWrap.style.gap = "8px";
-    const label = document.createElement("span");
-    label.className = "typing-label";
-    label.textContent = `${PROVIDERS[providerKey].label}'ga so'rov yuborildi…`;
-    const dots = document.createElement("span");
-    dots.className = "typing-dots";
-    dots.innerHTML = "<span></span><span></span><span></span>";
-    waitWrap.appendChild(label);
-    waitWrap.appendChild(dots);
-    txt.appendChild(waitWrap);
+    let card = makeWorkCard("Maryam ishlamoqda", `${PROVIDERS[providerKey].label}'ga so'rov yuborildi…`);
+    txt.appendChild(card.el);
     row.appendChild(av); row.appendChild(txt);
     messagesInner.appendChild(row);
     scrollChatToBottom();
@@ -2918,30 +2954,24 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
     function startThinking(){
       thinkTimer = setInterval(() => {
         thinkIdx = (thinkIdx + 1) % THINKING_PHRASES.length;
-        label.style.opacity = "0";
-        setTimeout(() => { label.textContent = THINKING_PHRASES[thinkIdx]; label.style.opacity = "1"; }, 200);
+        if(card) card.setStep(THINKING_PHRASES[thinkIdx]);
       }, 2000);
     }
-    function stopThinking(){ if(thinkTimer){ clearInterval(thinkTimer); thinkTimer = null; } }
+    function stopThinking(){ if(thinkTimer){ clearInterval(thinkTimer); thinkTimer = null; } if(card){ card.stop(); } }
     startThinking();
 
     function switchToFileMode(){
       stopThinking();
       mode = "file";
       txt.innerHTML = "";
-      const wrap = document.createElement("span");
-      wrap.style.display = "inline-flex"; wrap.style.alignItems = "center"; wrap.style.gap = "8px";
-      const l = document.createElement("span");
-      l.className = "typing-label";
-      const d = document.createElement("span");
-      d.className = "typing-dots";
-      d.innerHTML = "<span></span><span></span><span></span>";
-      wrap.appendChild(l); wrap.appendChild(d);
-      txt.appendChild(wrap);
-      const tick = () => { l.textContent = fileStages[fileStageIdx]; };
-      tick();
-      fileStageTimer = setInterval(tick, 450);
-      row._advanceFileStage = () => { if(fileStageIdx < fileStages.length - 1){ fileStageIdx++; } };
+      card = makeWorkCard("Fayllar yaratilmoqda", "Loyiha tuzilmasi o'ylab chiqilmoqda…");
+      txt.appendChild(card.el);
+      row._advanceFileStage = (full) => {
+        const names = [...(full || "").matchAll(/={3}FILE:\s*([^\n=]+?)\s*={3}/g)].map(m => m[1]);
+        if(!names.length) return;
+        card.setTitle(names.length > 1 ? `Fayllar yaratilmoqda (${names.length})` : "Fayl yaratilmoqda");
+        card.setStep(`Yaratilmoqda: ${names[names.length - 1]}`);
+      };
     }
 
     return {
@@ -2956,7 +2986,7 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
           txt.innerHTML = renderMarkdownLite(displaySafeText(full)) + '<span class="type-cursor"></span>';
           scrollChatToBottom();
         } else if(mode === "file"){
-          if(row._advanceFileStage) row._advanceFileStage();
+          if(row._advanceFileStage) row._advanceFileStage(full);
         }
       },
       finishAsText(full, entry){
@@ -2984,12 +3014,8 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
         mode = "waiting";
         txt.classList.remove("error-text");
         txt.innerHTML = "";
-        const wrap = document.createElement("span");
-        wrap.style.display = "inline-flex"; wrap.style.alignItems = "center"; wrap.style.gap = "8px";
-        const l = document.createElement("span"); l.className = "typing-label"; l.textContent = msg;
-        const d = document.createElement("span"); d.className = "typing-dots"; d.innerHTML = "<span></span><span></span><span></span>";
-        wrap.appendChild(l); wrap.appendChild(d);
-        txt.appendChild(wrap);
+        card = makeWorkCard("Maryam ishlamoqda", msg);
+        txt.appendChild(card.el);
         scrollChatToBottom();
       },
       wasFileMode(){ return mode === "file"; }
@@ -3024,7 +3050,7 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
   });
 
   /* =================== SEND =================== */
-  async function handleSend(userText, attachments){
+  async function handleSend(userText, attachments, sendOpts){
     attachments = attachments || [];
     if(isSending) return;
     if(!providerReady(providerKey)){
@@ -3041,7 +3067,7 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
     }
 
     const { kept, dropped } = filterAttachmentsForProvider(providerKey, attachments);
-    let finalText = userText;
+    let finalText = (sendOpts && sendOpts.modelText) || userText;
     if(dropped.length){ finalText = (finalText ? finalText + "\n\n" : "") + `[Eslatma: ${dropped.join(", ")} — ${PROVIDERS[providerKey].label} bu turdagi faylni qabul qilmaydi, o'tkazib yuborildi]`; }
 
     clearMsgActions();
@@ -3209,7 +3235,11 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
   /* =================== IMAGE GENERATION =================== */
   const IMAGE_CAPABLE = { gemini:true, openai:true };
 
+  // Rasm yaratish hozir o'chirilgan (Firebase Blaze tarifi kerak). Qayta yoqish: true qiling va CSS dagi #menuImageBtn qoidasini olib tashlang.
+  const IMAGE_GENERATION_ENABLED = false;
+  let imageBlocked = false; // rasm yaratish pullik tarifni talab qilsa, shu sessiyada qayta urinilmaydi
   async function generateGeminiImage(prompt, key){
+    if(imageBlocked) throw new Error("Rasm yaratish bepul (Spark) tarifda mavjud emas. Firebase Blaze tarifi kerak.");
     // Firebase AI Logic orqali (API kalitsiz). Eski gemini-2.5-flash-image 2026-10-02 da o'chirilgan.
     if(!currentUser || !fbApi || !fbApi.aiAvailable) throw new Error("Rasm yaratish uchun Google hisobingiz bilan kiring.");
     let data = null;
@@ -3217,7 +3247,9 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
       data = await fbApi.geminiImage({ prompt, model: IMAGE_MODEL, signal: currentAbortController ? currentAbortController.signal : undefined });
     }catch(e){
       if(isAbortError(e)) throw e;
-      throw mapGeminiError(e);
+      const mapped = mapGeminiError(e, IMAGE_MODEL);
+      if(mapped.geminiKind === "billing") imageBlocked = true;
+      throw mapped;
     }
     if(!data) throw new Error("Maryam rasm qaytarmadi. So'rovni boshqacharoq ta'riflab ko'ring.");
     return data;
@@ -3382,7 +3414,7 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
     const chat = getActiveChat();
     if(!chat) return;
 
-    const withImages = providerReady("gemini");
+    const withImages = IMAGE_GENERATION_ENABLED && providerReady("gemini");
 
     isSending = true;
     currentAbortController = new AbortController();
@@ -3430,13 +3462,15 @@ Mavzu/ko'rsatma: "${topic}"`;
       if(withImages){
         for(let i = 0; i < slides.length; i++){
           if(currentAbortController && currentAbortController.signal.aborted) throw Object.assign(new Error("To'xtatildi"), { name:"AbortError" });
+          if(imageBlocked) break;
           updatePdfStatus(statusLabel, `Slayd ${i+1}/${slides.length} uchun rasm chizilmoqda…`);
           if(slides[i].image_prompt){
             try{ slides[i]._imageData = await generateGeminiImage(slides[i].image_prompt, ""); }
             catch(e){ if(isAbortError(e)) throw e; /* bitta slayd rasmi muvaffaqiyatsiz bo'lsa ham davom etamiz */ }
           }
         }
-      } else {
+        if(imageBlocked) renderSystemNote("Slayd rasmlari yaratilmadi: rasm yaratish Firebase'ning pullik (Blaze) tarifini talab qiladi. Taqdimot rasmsiz, faqat dizayn bilan tayyorlandi.");
+      } else if(IMAGE_GENERATION_ENABLED){
         renderSystemNote("Eslatma: rasm chizish faqat Maryam AI orqali ishlaydi — taqdimot rasmsiz, faqat dizayn asosida tayyorlanadi.");
       }
 
@@ -4102,8 +4136,31 @@ Mavzu/ko'rsatma: "${topic}"`;
       if(!text) return;
       motionMode = false;
       refreshComposerModeUI();
-      const motionPrompt = `Menga "${text}" mavzusida professional, silliq va zamonaviy MOTION DIZAYN (animatsiya) yasab ber. CSS @keyframes animatsiyalaridan (yoki kerak bo'lsa SVG/Canvas animatsiyasidan) foydalanib, bitta to'liq ishlaydigan HTML faylda chiroyli, sinxron va aylanma (loop) animatsiya yarat.`;
-      handleSend(motionPrompt, attachments);
+      const motionPrompt = `MOTION DIZAYN buyurtmasi: "${text}"
+
+Sen top darajadagi motion-designer va front-end muhandissan. Natija — BITTA to'liq, mustaqil index.html fayl (kerakli CSS va JS ichida; tashqi kutubxona, rasm va CDN YO'Q; shriftlar faqat system-ui/Georgia/monospace). Faylni ===FILE: index.html=== formatida ber, javobda esa faqat 1-2 gap qisqa izoh yoz.
+
+DIZAYN
+- Avval aniq vizual yo'nalish tanla (rang palitra 3-4 rang, bitta aniq kayfiyat) va uni oxirigacha ushla. Umumiy "AI estetikasi"dan (binafsha gradientli bo'sh kartalar) qoch; mavzuga xos, o'ziga xos g'oya qil.
+- To'liq ekran: html,body{height:100%;margin:0;overflow:hidden}, 100dvh, mobil (360px) va desktopda mukammal; o'lchamlar clamp()/vmin bilan, element chetga chiqib ketmasin.
+- Tipografiya: katta, kontrastli, ierarxiyali; matn mavzu tilida (foydalanuvchi o'zbekcha yozgan bo'lsa — o'zbekcha).
+
+HARAKAT (asosiy qism)
+- Bitta bosh TIMELINE (JS: requestAnimationFrame yoki Web Animations API) ustiga qur: sahna → kirish (stagger 60-120ms) → asosiy harakat → chiqish → aylanma (loop) uzluksiz, sakrashsiz tutashsin.
+- Faqat transform va opacity (GPU) animatsiya qil; layout xossalarini (width/top) animatsiya qilma. 60 fps.
+- Easing: cubic-bezier(.22,1,.36,1) (out-expo) kirish uchun, (.65,0,.35,1) o'tish uchun; chiziqli (linear) faqat aylanish va yuklanishda. Davomiylik 400-900ms, umumiy sikl 6-12s.
+- Qatlamlar: fon (sekin parallaks/zarrachalar), o'rta (asosiy obyekt), old (matn). Har qatlam o'z tezligida — chuqurlik hissi.
+- Canvas ishlatsang: devicePixelRatio ga moslab, resize da qayta chiz.
+
+INTERAKTIV (artifact kabi)
+- Pastda kichik, chiroyli boshqaruv paneli: ⏯ pauza/davom, ↻ qayta ijro, tezlik (0.5x/1x/2x). Probel — pauza. Panel 3 soniyadan keyin xira bo'lsin, sichqoncha/tegish bilan qaytsin.
+- Bosish yoki tegishga javob bering (masalan, zarrachalar kursor tomon, yoki obyekt reaksiyasi).
+- prefers-reduced-motion: reduce bo'lsa harakatni minimal (statik kadr + sekin fade).
+
+SIFAT
+- Kod toza, izohlar qisqa, konsolda xato yo'q. Fayl oxirigacha to'liq (qisqartirma).
+- Yaratgandan so'ng ichki tekshiruv: sikl tutashadimi, 360px da matn sig'adimi, pauza ishlaydimi.`;
+      handleSend(text, attachments, { modelText: motionPrompt });
     } else {
       handleSend(text, attachments);
     }
@@ -4376,7 +4433,10 @@ Mavzu/ko'rsatma: "${topic}"`;
       kind = "sdk"; err = new Error("Firebase AI Logic SDK yuklanmadi." + (window.MaryamFBDiag && window.MaryamFBDiag.aiError ? " (" + window.MaryamFBDiag.aiError.slice(0, 110) + ")" : "") + " Sahifani yangilang yoki boshqa tarmoqda urinib ko'ring.");
     } else if(info.code === "maryam/timeout"){
       kind = "timeout"; err = new Error("Maryam javobi vaqtida kelmadi. Internet sifatini tekshirib, qayta urinib ko'ring." + tag); err.retryable = true;
-    } else if(/app.?check|appcheck/i.test(m + " " + info.code) || info.reasons.some(r => /app.?check/i.test(r))){
+    } else if(/to access this model|billing|blaze|pay.as.you.go|upgrade (your|the) (plan|project)|paid (plan|tier)/i.test(m + " " + info.reasons.join(" "))){
+      kind = "billing";
+      err = new Error("Bu model (rasm yaratish) Firebase'ning pullik Blaze tarifini talab qiladi. Hozirgi bepul Spark tarifda faqat matnli Maryam modellari ishlaydi. Rasm kerak bo'lsa, Console → Usage and billing → Modify plan → Blaze." + tag);
+    } else if(info.status === 401 || /app.?check token|appcheck token|app check token|firebase app check/i.test(m) || info.reasons.some(r => /app.?check/i.test(r))){
       kind = "appcheck"; err = new Error("App Check xatosi: Firebase Console → App Check'da AI Logic uchun \"Enforce\" yoqilgan, lekin ilovada App Check sozlanmagan. Enforce'ni \"Unenforce\" qiling yoki fayl boshidagi RECAPTCHA_V3_SITE_KEY / RECAPTCHA_SITE_KEY ni to'ldiring." + rawHint + tag); err.tryNextProvider = true;
     } else if(info.status === 429 || /RESOURCE_EXHAUSTED|quota|rate.?limit|too many requests/i.test(m)){
       kind = "quota"; err = new Error("So'rov limiti (quota) tugadi (429). Biroz kutib qayta urinib ko'ring yoki boshqa provayderga o'ting." + tag); err.tryNextProvider = true;
