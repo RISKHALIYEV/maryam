@@ -40,7 +40,8 @@ const FIREBASE_CONFIG = {
    Bo'sh qoldirilsa App Check umuman ishga tushmaydi va Gemini baribir ishlaydi
    (enforcement yoqilmagan bo'lsa). Kalitni O'ZINGIZ Console'dan olib shu yerga qo'ying.
    ===================================================================== */
-const RECAPTCHA_SITE_KEY = "";          // masalan: "6Lc..."  (Console → App Check → Apps → reCAPTCHA Enterprise)
+const RECAPTCHA_SITE_KEY = "";          // reCAPTCHA Enterprise site key: "6Lc..." (Console → App Check → Apps → reCAPTCHA Enterprise)
+const RECAPTCHA_V3_SITE_KEY = "";       // YOKI oddiy reCAPTCHA v3 site key (bepul, to'lov kartasiz): "6L..." (Console → App Check → Apps → reCAPTCHA v3)
 const APP_CHECK_DEBUG = false;          // true: sinov uchun debug token (console'da chiqadi, Console'ga qo'shiladi)
 
 const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
@@ -106,11 +107,12 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
     } catch (e) { db = fsM.getFirestore(app); }
 
     // App Check — faqat kalit kiritilgan bo'lsa. Muvaffaqiyatsiz bo'lsa Gemini'ni buzmaydi.
-    if (RECAPTCHA_SITE_KEY && !/^YOUR_/i.test(RECAPTCHA_SITE_KEY)) {
+    if ((RECAPTCHA_SITE_KEY && !/^YOUR_/i.test(RECAPTCHA_SITE_KEY)) || (RECAPTCHA_V3_SITE_KEY && !/^YOUR_/i.test(RECAPTCHA_V3_SITE_KEY))) {
       try {
         acM = await import(src.u("app-check"));
         if (APP_CHECK_DEBUG) self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-        acM.initializeAppCheck(app, { provider: new acM.ReCaptchaEnterpriseProvider(RECAPTCHA_SITE_KEY), isTokenAutoRefreshEnabled: true });
+        const acProvider = RECAPTCHA_V3_SITE_KEY ? new acM.ReCaptchaV3Provider(RECAPTCHA_V3_SITE_KEY) : new acM.ReCaptchaEnterpriseProvider(RECAPTCHA_SITE_KEY);
+        acM.initializeAppCheck(app, { provider: acProvider, isTokenAutoRefreshEnabled: true });
         diag.appCheck = "yoqilgan" + (APP_CHECK_DEBUG ? " (debug)" : "");
       } catch (e) {
         diag.appCheck = "xatolik";
@@ -897,7 +899,7 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <svg class="logo-mark" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0 L14.2 9.3 L24 12 L14.2 14.7 L12 24 L9.8 14.7 L0 12 L9.8 9.3 Z"/></svg>
-      <span class="brand-name">Maryam<small style="font:600 11px system-ui,sans-serif;opacity:.65;margin-left:7px;letter-spacing:.3px;">v7</small></span>
+      <span class="brand-name">Maryam<small style="font:600 11px system-ui,sans-serif;opacity:.65;margin-left:7px;letter-spacing:.3px;">v9</small></span>
       <button class="sidebar-close" id="sidebarClose" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
       </button>
@@ -4255,12 +4257,14 @@ Mavzu/ko'rsatma: "${topic}"`;
     const m = info.message;
     const tag = " [" + [info.status || null, info.code || info.name || null].filter(Boolean).join(" · ") + "]";
     let err, kind;
+    // Serverdan kelgan asl matnning qisqa qismi (kalitlar yashirilgan) — sababni aniq ko'rish uchun.
+    const rawHint = m ? " Server javobi: «" + m.replace(/\s+/g, " ").replace(/^AI:\s*/, "").slice(0, 170) + "»" : "";
     if(info.code === "maryam/no-ai"){
       kind = "sdk"; err = new Error("Firebase AI Logic SDK yuklanmadi." + (window.MaryamFBDiag && window.MaryamFBDiag.aiError ? " (" + window.MaryamFBDiag.aiError.slice(0, 110) + ")" : "") + " Sahifani yangilang yoki boshqa tarmoqda urinib ko'ring.");
     } else if(info.code === "maryam/timeout"){
       kind = "timeout"; err = new Error("Gemini javobi vaqtida kelmadi. Internet sifatini tekshirib, qayta urinib ko'ring." + tag); err.retryable = true;
     } else if(/app.?check|appcheck/i.test(m + " " + info.code) || info.reasons.some(r => /app.?check/i.test(r))){
-      kind = "appcheck"; err = new Error("App Check xatosi: Firebase Console → App Check'da AI Logic uchun \"Enforce\" yoqilgan, lekin ilovada App Check sozlanmagan. Enforce'ni o'chiring yoki fayl boshidagi RECAPTCHA_SITE_KEY ni to'ldiring." + tag); err.tryNextProvider = true;
+      kind = "appcheck"; err = new Error("App Check xatosi: Firebase Console → App Check'da AI Logic uchun \"Enforce\" yoqilgan, lekin ilovada App Check sozlanmagan. Enforce'ni \"Unenforce\" qiling yoki fayl boshidagi RECAPTCHA_V3_SITE_KEY / RECAPTCHA_SITE_KEY ni to'ldiring." + rawHint + tag); err.tryNextProvider = true;
     } else if(info.status === 429 || /RESOURCE_EXHAUSTED|quota|rate.?limit|too many requests/i.test(m)){
       kind = "quota"; err = new Error("So'rov limiti (quota) tugadi (429). Biroz kutib qayta urinib ko'ring yoki boshqa provayderga o'ting." + tag); err.tryNextProvider = true;
     } else if(info.status === 404 && /genai config not found|config not found/i.test(m)){
@@ -4273,7 +4277,7 @@ Mavzu/ko'rsatma: "${topic}"`;
       if(info.reasons.includes("API_KEY_SERVICE_BLOCKED") || /blocked/i.test(m)) hint = "Google Cloud → APIs & Services → Credentials → Browser key → API restrictions ichiga \"Firebase AI Logic API\" ni qo'shing.";
       else if(info.reasons.includes("SERVICE_DISABLED") || /has not been used|is disabled|api-not-enabled/i.test(m + info.code)) hint = "Google Cloud Console'da \"Firebase AI Logic API\" va \"Generative Language API\" ni Enable qiling.";
       else if(info.reasons.some(r => /REFERER/i.test(r)) || /referer/i.test(m)) hint = "API kalitning \"Website restrictions\" ro'yxatiga riskhaliyev.github.io ni qo'shing.";
-      err = new Error("Gemini ruxsat xatosi (" + (info.status || 403) + "). " + hint + tag); err.tryNextProvider = true;
+      err = new Error("Gemini ruxsat xatosi (" + (info.status || 403) + "). " + hint + rawHint + tag); err.tryNextProvider = true;
     } else if(info.status === 503 || info.status === 500 || info.status === 502 || info.status === 504 || /overloaded|unavailable|high demand/i.test(m)){
       kind = "busy"; err = new Error("Google serveri hozir band (" + (info.status || 503) + "). Bir necha daqiqadan keyin qayta urinib ko'ring." + tag); err.retryable = true;
     } else if(info.code === "AI/response-error" || /blocked|safety|SAFETY|PROHIBITED/i.test(m) && info.code.indexOf("AI/") === 0){
