@@ -20,10 +20,9 @@
 <script>window.MaryamFBReady = new Promise(function(resolve){ window.__resolveMaryamFB = resolve; });</script>
 <script type="module">
 /* =====================================================================
-   FIREBASE SOZLAMALARI  —  O'Z MA'LUMOTLARINGIZNI SHU YERGA QO'YING
-   Firebase Console → Project settings → Your apps → Web app → firebaseConfig
-   (Bu kalitlar jamoatga ochiq bo'lishi normal — himoya Firebase Auth,
-    Firestore Security Rules va Authorized domains orqali ta'minlanadi.)
+   FIREBASE SOZLAMALARI  (Firebase Console → Project settings → Your apps → Web app)
+   Bu qiymatlar ochiq bo'lishi normal — himoya Firebase Auth, Firestore Rules,
+   Authorized domains va (ixtiyoriy) App Check orqali ta'minlanadi.
    ===================================================================== */
 const FIREBASE_CONFIG = {
     apiKey: "AIzaSyCdHYZk6eaSWWYopUN0hQOj6ghYNG_00QM",
@@ -33,13 +32,23 @@ const FIREBASE_CONFIG = {
     messagingSenderId: "699768531703",
     appId: "1:699768531703:web:cf4a0f440a2743e675c1f2"
 };
-const SDK_VERSIONS = ["12.18.0", "12.10.0", "11.10.0"];
-// Firebase AI Logic 2026-yil iyulidan boshlab yangi loyihalarda App Check'ni talab qilishi mumkin.
-// Bu Gemini API kaliti EMAS; reCAPTCHA Enterprise site key bu yerga qo'yiladi.
-const FIREBASE_APPCHECK_SITE_KEY = "PASTE_RECAPTCHA_ENTERPRISE_SITE_KEY_HERE";
+
+/* =====================================================================
+   APP CHECK (IXTIYORIY)
+   Faqat Firebase Console → App Check'da reCAPTCHA Enterprise sozlangan bo'lsa
+   va "enforcement" (majburiy qilish) yoqilgan bo'lsa to'ldiring.
+   Bo'sh qoldirilsa App Check umuman ishga tushmaydi va Gemini baribir ishlaydi
+   (enforcement yoqilmagan bo'lsa). Kalitni O'ZINGIZ Console'dan olib shu yerga qo'ying.
+   ===================================================================== */
+const RECAPTCHA_SITE_KEY = "";          // masalan: "6Lc..."  (Console → App Check → Apps → reCAPTCHA Enterprise)
+const APP_CHECK_DEBUG = false;          // true: sinov uchun debug token (console'da chiqadi, Console'ga qo'shiladi)
+
+const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
 
 (async () => {
   const done = window.__resolveMaryamFB;
+  const diag = { sdk: null, sdkErrors: [], aiLoaded: false, aiError: null, aiInit: false, appCheck: "o'chiq", appCheckError: null };
+  window.MaryamFBDiag = diag;
   try {
     const looksUnset = (v) => !v || /^YOUR_/i.test(String(v));
     if (looksUnset(FIREBASE_CONFIG.apiKey) || looksUnset(FIREBASE_CONFIG.projectId) || looksUnset(FIREBASE_CONFIG.appId)) {
@@ -55,49 +64,37 @@ const FIREBASE_APPCHECK_SITE_KEY = "PASTE_RECAPTCHA_ENTERPRISE_SITE_KEY_HERE";
     }));
     SOURCES.push({ name: "jsdelivr 12.10.0", u: (m) => "https://cdn.jsdelivr.net/npm/firebase@12.10.0/" + m + "/+esm" });
     SOURCES.push({ name: "esm.sh 12.10.0", u: (m) => "https://esm.sh/firebase@12.10.0/" + m });
-    let appM, authM, fsM, aiM, appCheckM, loaded = false, lastErr = null;
-    for (const src of SOURCES) {
+
+    let appM, authM, fsM, aiM = null, acM = null, src = null, lastErr = null;
+    for (const s of SOURCES) {
       try {
-        [appM, authM, fsM] = await Promise.all([
-          import(src.u("app")),
-          import(src.u("auth")),
-          import(src.u("firestore"))
-        ]);
-        aiM = await import(src.u("ai")).catch((e) => { console.warn("[Maryam] Firebase AI Logic yuklanmadi:", e); return null; });
-        appCheckM = await import(src.u("app-check")).catch((e) => { console.warn("[Maryam] Firebase App Check yuklanmadi:", e); return null; });
-        loaded = true;
-        console.info("[Maryam] Firebase SDK yuklandi: " + src.name);
-        break;
-      } catch (e) { lastErr = e; console.warn("[Maryam] " + src.name + " yuklanmadi, keyingisi sinaladi:", e); }
+        [appM, authM, fsM] = await Promise.all([import(s.u("app")), import(s.u("auth")), import(s.u("firestore"))]);
+        src = s; break;
+      } catch (e) { lastErr = e; diag.sdkErrors.push(s.name + ": " + String(e && e.message || e).slice(0, 120)); console.warn("[Maryam][SDK] " + s.name + " yuklanmadi:", e); }
     }
-    if (!loaded) throw lastErr || new Error("Firebase SDK yuklanmadi");
+    if (!src) throw lastErr || new Error("Firebase SDK yuklanmadi");
+    diag.sdk = src.name;
+    console.info("[Maryam][SDK] yuklandi: " + src.name);
+
+    // AI Logic moduli AYNAN SHU manbadan yuklanadi (app moduli bilan bir xil nusxa bo'lishi shart).
+    try {
+      aiM = await import(src.u("ai"));
+      if (typeof aiM.getAI !== "function" || typeof aiM.getGenerativeModel !== "function" || typeof aiM.GoogleAIBackend !== "function") {
+        throw new Error("firebase/ai eksportlari topilmadi (getAI/getGenerativeModel/GoogleAIBackend)");
+      }
+      diag.aiLoaded = true;
+    } catch (e) {
+      aiM = null;
+      diag.aiError = "Firebase AI Logic SDK yuklanmadi: " + String(e && e.message || e).slice(0, 160);
+      console.error("[Maryam][SDK] " + diag.aiError, e);
+    }
 
     const app = appM.initializeApp(FIREBASE_CONFIG);
-
-    // App Check: AI Logic so'rovlari uchun himoya. Site key public bo'ladi, maxfiy API key emas.
-    let appCheckReady = false;
-    let appCheckError = null;
-    if (appCheckM && FIREBASE_APPCHECK_SITE_KEY && !/^PASTE_/i.test(FIREBASE_APPCHECK_SITE_KEY)) {
-      try {
-        appCheckM.initializeAppCheck(app, {
-          provider: new appCheckM.ReCaptchaEnterpriseProvider(FIREBASE_APPCHECK_SITE_KEY),
-          isTokenAutoRefreshEnabled: true
-        });
-        appCheckReady = true;
-        console.info("[Maryam] Firebase App Check ishga tushdi");
-      } catch (e) {
-        appCheckError = e;
-        console.warn("[Maryam] App Check ishga tushmadi:", e);
-      }
-    } else {
-      console.warn("[Maryam] App Check site key kiritilmagan. Firebase AI Logic App Check talab qilsa Gemini ishlamaydi.");
-    }
-
     const auth = authM.getAuth(app);
 
     // Sessiyani saqlash: sahifani qayta ochganda yana login so'ralmaydi.
     try { await authM.setPersistence(auth, authM.indexedDBLocalPersistence); }
-    catch (e1) { try { await authM.setPersistence(auth, authM.browserLocalPersistence); } catch (e2) { /* standart persistence ishlaydi */ } }
+    catch (e1) { try { await authM.setPersistence(auth, authM.browserLocalPersistence); } catch (e2) { /* standart persistence */ } }
 
     let db;
     try {
@@ -108,12 +105,29 @@ const FIREBASE_APPCHECK_SITE_KEY = "PASTE_RECAPTCHA_ENTERPRISE_SITE_KEY_HERE";
       });
     } catch (e) { db = fsM.getFirestore(app); }
 
-    // Gemini: API kalit YO'Q — so'rovlar Firebase AI Logic proxy orqali, foydalanuvchi sessiyasi bilan ketadi.
+    // App Check — faqat kalit kiritilgan bo'lsa. Muvaffaqiyatsiz bo'lsa Gemini'ni buzmaydi.
+    if (RECAPTCHA_SITE_KEY && !/^YOUR_/i.test(RECAPTCHA_SITE_KEY)) {
+      try {
+        acM = await import(src.u("app-check"));
+        if (APP_CHECK_DEBUG) self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+        acM.initializeAppCheck(app, { provider: new acM.ReCaptchaEnterpriseProvider(RECAPTCHA_SITE_KEY), isTokenAutoRefreshEnabled: true });
+        diag.appCheck = "yoqilgan" + (APP_CHECK_DEBUG ? " (debug)" : "");
+      } catch (e) {
+        diag.appCheck = "xatolik";
+        diag.appCheckError = String(e && e.message || e).slice(0, 160);
+        console.warn("[Maryam][AppCheck] ishga tushmadi:", e);
+      }
+    }
+
+    // Gemini: API kalit YO'Q — so'rovlar Firebase AI Logic orqali, Firebase ilovasi bilan ketadi.
     let ai = null;
-    if (aiM) { try { ai = aiM.getAI(app, { backend: new aiM.GoogleAIBackend() }); } catch (e) { console.warn("[Maryam] getAI xatosi:", e); } }
+    if (aiM) {
+      try { ai = aiM.getAI(app, { backend: new aiM.GoogleAIBackend() }); diag.aiInit = true; }
+      catch (e) { diag.aiError = "getAI() xatosi: " + String(e && e.message || e).slice(0, 160); console.error("[Maryam][SDK] " + diag.aiError, e); }
+    }
 
     const provider = new authM.GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: "select_account" }); // har safar haqiqiy Google "Hisobni tanlang" oynasi
+    provider.setCustomParameters({ prompt: "select_account" });
 
     let redirectError = null;
     try { await authM.getRedirectResult(auth); } catch (e) { redirectError = e; }
@@ -131,11 +145,16 @@ const FIREBASE_APPCHECK_SITE_KEY = "PASTE_RECAPTCHA_ENTERPRISE_SITE_KEY_HERE";
         );
       });
     };
+    const withTimeout = (p, ms, label) => new Promise((resolve, reject) => {
+      const t = setTimeout(() => reject(Object.assign(new Error(label + ": " + (ms / 1000) + " soniyada javob kelmadi"), { code: "maryam/timeout" })), ms);
+      p.then((v) => { clearTimeout(t); resolve(v); }, (e) => { clearTimeout(t); reject(e); });
+    });
+
+    const makeModel = (params) => aiM.getGenerativeModel(ai, params);
 
     const api = {
       aiAvailable: !!ai,
-      appCheckReady,
-      appCheckError,
+      diag,
       onAuthChanged: (cb) => authM.onAuthStateChanged(auth, cb),
       signOut: () => authM.signOut(auth),
 
@@ -154,9 +173,7 @@ const FIREBASE_APPCHECK_SITE_KEY = "PASTE_RECAPTCHA_ENTERPRISE_SITE_KEY_HERE";
         const snap = await fsM.getDoc(fsM.doc(db, ...path));
         return snap.exists() ? snap.data() : null;
       },
-      async setDoc(path, data, merge) {
-        return fsM.setDoc(fsM.doc(db, ...path), data, merge ? { merge: true } : {});
-      },
+      async setDoc(path, data, merge) { return fsM.setDoc(fsM.doc(db, ...path), data, merge ? { merge: true } : {}); },
       async deleteDoc(path) { return fsM.deleteDoc(fsM.doc(db, ...path)); },
       async listDocs(path) {
         const snap = await fsM.getDocs(fsM.collection(db, ...path));
@@ -165,36 +182,57 @@ const FIREBASE_APPCHECK_SITE_KEY = "PASTE_RECAPTCHA_ENTERPRISE_SITE_KEY_HERE";
 
       // Matnli javobni oqim (stream) ko'rinishida oladi.
       async geminiStream({ model, systemInstruction, contents, temperature, signal, onText }) {
-        if (!ai) throw new Error("Firebase AI Logic mavjud emas");
-        const gm = aiM.getGenerativeModel(ai, {
-          model,
-          systemInstruction,
-          generationConfig: { temperature }
-        });
-        try {
-          const result = await raceAbort(gm.generateContentStream(contents), signal);
-          for await (const chunk of result.stream) {
-            if (signal && signal.aborted) break;
-            let text = "";
-            try { text = chunk.text(); } catch (e) { text = ""; }
-            if (text) onText(text);
-          }
-        } catch (e) {
-          console.error("[Maryam] Firebase AI Logic Gemini xatosi:", e);
-          const details = [e?.code, e?.message, e?.customData?.originalError?.message].filter(Boolean).join(" | ");
-          const wrapped = new Error(details || "Firebase AI Logic so'rovi bajarilmadi");
-          wrapped.code = e?.code || e?.customData?.originalError?.code || "ai/unknown";
-          wrapped.originalError = e;
-          throw wrapped;
+        if (!ai) throw Object.assign(new Error(diag.aiError || "Firebase AI Logic SDK yuklanmadi."), { code: "maryam/no-ai" });
+        const gm = makeModel({ model, systemInstruction, generationConfig: { temperature } });
+        console.info("[Maryam][Gemini] stream started, model =", model);
+        const result = await raceAbort(gm.generateContentStream({ contents }, signal ? { signal } : undefined), signal);
+        let n = 0;
+        for await (const chunk of result.stream) {
+          if (signal && signal.aborted) break;
+          let text = "";
+          try { text = chunk.text(); } catch (e) { if (e && e.code === "AI/response-error") throw e; text = ""; }
+          if (text) { if (n++ === 0) console.info("[Maryam][Gemini] chunk received"); onText(text); }
         }
-        return;
+        console.info("[Maryam][Gemini] completed, chunks =", n);
+        return n;
+      },
+
+      // Diagnostika uchun: oddiy (stream bo'lmagan) so'rov.
+      async geminiPing({ model, prompt, timeoutMs }) {
+        if (!ai) throw Object.assign(new Error(diag.aiError || "Firebase AI Logic SDK yuklanmadi."), { code: "maryam/no-ai" });
+        const gm = makeModel({ model });
+        const res = await withTimeout(gm.generateContent(prompt || "Faqat bitta so'z yoz: OK"), timeoutMs || 25000, "generateContent");
+        let text = "";
+        try { text = res.response.text(); } catch (e) { text = ""; }
+        return text;
+      },
+      async geminiPingStream({ model, prompt, timeoutMs }) {
+        if (!ai) throw Object.assign(new Error(diag.aiError || "Firebase AI Logic SDK yuklanmadi."), { code: "maryam/no-ai" });
+        const gm = makeModel({ model });
+        const run = (async () => {
+          const result = await gm.generateContentStream(prompt || "Faqat bitta so'z yoz: OK");
+          let n = 0, text = "";
+          for await (const chunk of result.stream) { n++; try { text += chunk.text(); } catch (e) {} }
+          return { chunks: n, text };
+        })();
+        return withTimeout(run, timeoutMs || 25000, "generateContentStream");
+      },
+
+      // Tarmoq tekshiruvi: Google serverlariga umuman yetib borish mumkinmi (javob mazmuni muhim emas).
+      async probe(url) {
+        const ctl = new AbortController();
+        const t = setTimeout(() => ctl.abort(), 9000);
+        const t0 = performance.now();
+        try { await fetch(url, { mode: "no-cors", cache: "no-store", signal: ctl.signal }); return { ok: true, ms: Math.round(performance.now() - t0) }; }
+        catch (e) { return { ok: false, error: ctl.signal.aborted ? "9 soniyada javob kelmadi" : String(e && e.message || e) }; }
+        finally { clearTimeout(t); }
       },
 
       // Rasm yaratish: base64 qaytaradi (yoki null).
       async geminiImage({ prompt, model, signal }) {
-        if (!ai) throw new Error("Firebase AI Logic mavjud emas");
+        if (!ai) throw Object.assign(new Error(diag.aiError || "Firebase AI Logic SDK yuklanmadi."), { code: "maryam/no-ai" });
         const modalities = aiM.ResponseModality ? [aiM.ResponseModality.TEXT, aiM.ResponseModality.IMAGE] : ["TEXT", "IMAGE"];
-        const gm = aiM.getGenerativeModel(ai, { model, generationConfig: { responseModalities: modalities } });
+        const gm = makeModel({ model, generationConfig: { responseModalities: modalities } });
         const res = await raceAbort(gm.generateContent(prompt), signal);
         const cand = res && res.response && res.response.candidates && res.response.candidates[0];
         const parts = (cand && cand.content && cand.content.parts) || [];
@@ -808,6 +846,9 @@ const FIREBASE_APPCHECK_SITE_KEY = "PASTE_RECAPTCHA_ENTERPRISE_SITE_KEY_HERE";
   .profile-sync.error{color:var(--danger);}
   .gemini-account-note{font-size:13px; line-height:1.5; color:var(--text-muted); background:var(--accent-soft); border:1px solid var(--accent-soft-strong); border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:12px;}
   .legal-text{font-size:13.5px; line-height:1.6; color:var(--text-muted); margin:0 0 6px;}
+  .diag-out{font-size:12px; line-height:1.5; max-height:38vh; overflow:auto; border:1px solid var(--border-soft); border-radius:var(--radius-sm); padding:8px 10px; margin-bottom:8px; background:var(--bg-input); -webkit-overflow-scrolling:touch;}
+  .diag-row{padding:3px 0; word-break:break-word; color:var(--text-muted);}
+  .diag-row.bad{color:var(--danger);}
   .btn.danger-text{color:var(--danger);}
 </style>
 </head>
@@ -856,7 +897,7 @@ const FIREBASE_APPCHECK_SITE_KEY = "PASTE_RECAPTCHA_ENTERPRISE_SITE_KEY_HERE";
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <svg class="logo-mark" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0 L14.2 9.3 L24 12 L14.2 14.7 L12 24 L9.8 14.7 L0 12 L9.8 9.3 Z"/></svg>
-      <span class="brand-name">Maryam<small style="font:600 11px system-ui,sans-serif;opacity:.65;margin-left:7px;letter-spacing:.3px;">v5</small></span>
+      <span class="brand-name">Maryam<small style="font:600 11px system-ui,sans-serif;opacity:.65;margin-left:7px;letter-spacing:.3px;">v7</small></span>
       <button class="sidebar-close" id="sidebarClose" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
       </button>
@@ -1077,6 +1118,8 @@ const FIREBASE_APPCHECK_SITE_KEY = "PASTE_RECAPTCHA_ENTERPRISE_SITE_KEY_HERE";
       <div class="profile-value" id="profileEmail"></div>
     </div>
     <div class="profile-sync" id="profileSync"></div>
+    <button class="btn btn-text" id="geminiDiagBtn" type="button" style="width:100%; margin:2px 0 6px; border:1px solid var(--border-soft);">Gemini diagnostikasi</button>
+    <div class="diag-out" id="geminiDiagOut" style="display:none;"></div>
     <div class="modal-actions">
       <button class="btn btn-text danger-text" id="profileLogoutBtn" type="button" style="margin-right:auto;">Chiqish</button>
       <button class="btn btn-accent" id="closeProfileBtn" type="button">Yopish</button>
@@ -1155,10 +1198,11 @@ const FIREBASE_APPCHECK_SITE_KEY = "PASTE_RECAPTCHA_ENTERPRISE_SITE_KEY_HERE";
   const PROVIDERS = {
     gemini:{ label:"Gemini", full:"Google Gemini", keyPlaceholder:"AIzaSy...", helpUrl:"https://aistudio.google.com/apikey",
       models:[
-        {id:"gemini-3.8-flash", label:"gemini-3.8-flash — tavsiya etiladi"},
+        {id:"gemini-3.7-flash", label:"gemini-3.7-flash — tavsiya etiladi"},
+        {id:"gemini-3.8-flash", label:"gemini-3.8-flash — eng yangi"},
         {id:"gemini-3.5-flash", label:"gemini-3.5-flash — tez va zamonaviy"},
-        {id:"gemini-3-pro-preview", label:"gemini-3-pro-preview — kuchliroq"},
-        {id:"gemini-3.5-flash-lite", label:"gemini-3.5-flash-lite — eng arzon"}
+        {id:"gemini-3.5-flash-lite", label:"gemini-3.5-flash-lite — eng arzon"},
+        {id:"gemini-3.1-pro-preview", label:"gemini-3.1-pro-preview — kuchliroq"}
       ], supportsImage:true, supportsVideo:true },
     openai:{ label:"OpenAI", full:"OpenAI", keyPlaceholder:"sk-...", helpUrl:"https://platform.openai.com/api-keys",
       models:[
@@ -1210,7 +1254,6 @@ const FIREBASE_APPCHECK_SITE_KEY = "PASTE_RECAPTCHA_ENTERPRISE_SITE_KEY_HERE";
   // Gemini Google hisobi + Firebase AI Logic orqali ishlaydi — API kalit so'ralmaydi.
   PROVIDERS.gemini.accountAuth = true;
   PROVIDERS.gemini.helpUrl = "https://firebase.google.com/docs/ai-logic";
-  PROVIDERS.gemini.models.splice(2, 0, {id:"gemini-3.6-flash", label:"gemini-3.6-flash — yangi va tez"});
 
   /* =================== HIDDEN SYSTEM PROMPT =================== */
   const SYSTEM_PROMPT_BASE = `Sen "Maryam" ismli, o'ta tajribali Senior Full-Stack Dasturchi va AI muhandisisan. Sening kodlaring har doim toza, zamonaviy, xatosiz va ishga to'liq tayyor bo'ladi. Foydalanuvchi bilan to'g'ridan-to'g'ri gaplashasan, lekin javob formatingda quyidagi qat'iy qoidalarga so'zsiz amal qilasan:
@@ -1419,7 +1462,7 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
   };
 
   let apiKeys = { gemini:"", openai:"", claude:"", groq:"", deepseek:"", openrouter:"", cerebras:"", mistral:"", huggingface:"", ollama:"" };
-  let models = { gemini:"gemini-3.8-flash", openai:"gpt-5.5", claude:"claude-sonnet-5", groq:"openai/gpt-oss-120b", deepseek:"deepseek-v4-flash", openrouter:"deepseek/deepseek-r1:free", cerebras:"gpt-oss-120b", mistral:"mistral-small-latest", huggingface:"", ollama:"llama3.2" };
+  let models = { gemini:"gemini-3.7-flash", openai:"gpt-5.5", claude:"claude-sonnet-5", groq:"openai/gpt-oss-120b", deepseek:"deepseek-v4-flash", openrouter:"deepseek/deepseek-r1:free", cerebras:"gpt-oss-120b", mistral:"mistral-small-latest", huggingface:"", ollama:"llama3.2" };
   let providerBaseUrls = { ollama: PROVIDERS.ollama.defaultBaseUrl };
   let isSending = false;
   let currentAbortController = null;
@@ -2641,49 +2684,6 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
     }
   }
 
-  // Gemini endi API kalit bilan emas — Firebase AI Logic orqali, foydalanuvchining Google hisobi bilan ishlaydi.
-  const geminiModelMap = {};
-  function normalizeGeminiModel(model){
-    const m = String(model || "").trim();
-    // Eski versiyalarda saqlangan/endi mavjud bo'lmagan nomlarni
-    // Firebase AI Logic uchun ishlaydigan modelga o'tkazamiz.
-    if(!m || /gemini-flash-latest|gemini-3\.5-flash|gemini-3\.6-flash|gemini-3-pro-preview|gemini-3\.5-flash-lite/i.test(m)){
-      return "gemini-3.8-flash";
-    }
-    return m;
-  }
-
-  async function streamGeminiProvider(messages, key, model, onDelta){
-    if(!currentUser || !fbApi || !fbApi.aiAvailable){
-      throw new Error("Gemini’dan foydalanish uchun Google hisobingiz bilan kiring (yoki sahifani qayta oching).");
-    }
-    const contents = messages.map(m => ({
-      role: m.role === "assistant" ? "model" : "user",
-      parts: [ ...(m.attachments||[]).map(a => ({ inlineData:{ mimeType:a.mimeType, data:a.dataBase64 } })), ...(m.text ? [{ text:m.text }] : []) ]
-    }));
-    const signal = currentAbortController ? currentAbortController.signal : undefined;
-    const system = buildSystemPrompt();
-    const tried = [];
-    let candidate = geminiModelMap[model] || normalizeGeminiModel(model);
-    let full = "";
-    while(true){
-      tried.push(candidate);
-      try{
-        await fbApi.geminiStream({ model: candidate, systemInstruction: system, contents, temperature: 0.85, signal, onText: (chunk) => { full += chunk; onDelta(chunk, full); } });
-        if(candidate !== model) geminiModelMap[model] = candidate;
-        return full;
-      }catch(e){
-        if(isAbortError(e) || (signal && signal.aborted)) return full;
-        const mapped = mapGeminiError(e);
-        if(mapped.modelNotFound && !full){
-          const next = GEMINI_FALLBACK_MODELS.find(m => !tried.includes(m));
-          if(next){ candidate = next; continue; }
-        }
-        throw mapped;
-      }
-    }
-  }
-
   async function streamOpenAiCompatible(baseUrl, messages, key, model, onDelta){
     const oaMessages = [{ role:"system", content:buildSystemPrompt() }];
     messages.forEach(m => {
@@ -2960,14 +2960,16 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
   function getFallbackProviderOrder(){
     const order = [providerKey];
     FALLBACK_PRIORITY.forEach(p => { if(p !== providerKey && !order.includes(p)) order.push(p); });
-    return order.filter(p => PROVIDERS[p] && providerReady(p));
+    // Kalitsiz lokal provayderlar (Ollama = localhost) faqat foydalanuvchi o'zi tanlagan bo'lsagina ishlatiladi:
+    // aks holda ular avtomatik zaxira bo'lib, asosiy provayderning HAQIQIY xatosini "tarmoq xatosi" bilan yashirib qo'yadi.
+    return order.filter(p => PROVIDERS[p] && providerReady(p) && (p === providerKey || !PROVIDERS[p].noKeyRequired));
   }
 
   // Tanlangan provayderning kunlik/daqiqalik limiti tugasa yoki kaliti yaroqsiz bo'lsa,
   // foydalanuvchi sozlagan boshqa provayderlarga avtomatik o'tib, so'rovni davom ettiradi.
   async function runWithFallback(chat, live){
     const candidates = getFallbackProviderOrder();
-    let lastErr = null;
+    let lastErr = null, firstErr = null;
     for(let i = 0; i < candidates.length; i++){
       const pKey = candidates[i];
       try{
@@ -2975,13 +2977,16 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
         return { text, usedProvider: pKey, switched: i > 0 };
       }catch(err){
         lastErr = err;
+        if(!firstErr) firstErr = err;
         if(currentAbortController && currentAbortController.signal.aborted) return { text:"", usedProvider:pKey, switched:false };
         if(err && err.tryNextProvider && i < candidates.length - 1){
           const nextLabel = PROVIDERS[candidates[i+1]].label;
-          live.resetWaiting(`${PROVIDERS[pKey].label} limiti tugadi — ${nextLabel}'ga avtomatik o'tilmoqda…`);
+          console.warn("[Maryam] " + pKey + " xatosi, keyingi provayderga o'tilmoqda:", err.message);
+          live.resetWaiting(`${PROVIDERS[pKey].label} ishlamadi — ${nextLabel}'ga avtomatik o'tilmoqda…`);
           continue;
         }
-        throw err;
+        // Zaxira provayder ham yiqilsa, foydalanuvchiga ASOSIY provayderning haqiqiy xatosi ko'rsatiladi.
+        throw (i > 0 && firstErr) ? firstErr : err;
       }
     }
     throw lastErr || new Error("Hech qanday provayder javob bermadi.");
@@ -3642,6 +3647,7 @@ Mavzu/ko'rsatma: "${topic}"`;
         if(remote.apiKeys) apiKeys = Object.assign(apiKeys, remote.apiKeys);
         apiKeys.gemini = "";
         if(remote.models) models = Object.assign(models, remote.models);
+        fixGeminiModel();
         if(remote.providerKey && PROVIDERS[remote.providerKey]) providerKey = remote.providerKey;
         if(remote.providerBaseUrls) providerBaseUrls = Object.assign(providerBaseUrls, remote.providerBaseUrls);
         await kvSet(AI_CONFIG_KEY, JSON.stringify({ apiKeys, models, providerKey, providerBaseUrls }));
@@ -4011,7 +4017,6 @@ Mavzu/ko'rsatma: "${topic}"`;
   const TERMS_URL = "";
 
   const DEFAULT_MODELS = Object.assign({}, models);
-  const GEMINI_FALLBACK_MODELS = ["gemini-3.8-flash"];
   const IMAGE_MODEL = "gemini-3.1-flash-image";
   const LEGACY_ADOPTED_KEY = "maryam_legacy_adopted_v1";
   const SYNCED_IDS_KEY = "maryam_synced_ids_v1";
@@ -4202,39 +4207,191 @@ Mavzu/ko'rsatma: "${topic}"`;
     await kvSet(LEGACY_ADOPTED_KEY, currentUser.uid, true);
   }
 
-  /* ---- Gemini xatolarini foydalanuvchiga tushunarli ko'rinishga keltirish ---- */
-  function mapGeminiError(e){
-    const raw = String((e && (e.message || e.code)) || e || "");
-    const code = String((e && e.code) || "");
-    let err;
-    if(/429|quota|RESOURCE_EXHAUSTED|rate.?limit|too many requests/i.test(raw)){
-      err = new Error("So'rov limiti tugadi — biroz kutib qayta urinib ko'ring, yoki yozish maydonining yonidan boshqa provayder/modelga o'ting.");
-      err.tryNextProvider = true;
-    } else if(/503|overloaded|unavailable|high demand/i.test(raw)){
-      err = new Error("Google serveri hozir band — vaqtinchalik holat. Bir necha daqiqadan keyin qayta urinib ko'ring.");
-      err.retryable = true;
-    } else if(/app.?check|FAILED_PRECONDITION|missing.*app.?check|invalid.*app.?check/i.test(raw + " " + code)){
-      err = new Error("Firebase App Check to'g'ri sozlanmagan. Firebase Console → AI Logic → App Check'ni sozlang va reCAPTCHA Enterprise site key'ni index.html dagi FIREBASE_APPCHECK_SITE_KEY joyiga kiriting. [" + (code || "app-check") + "]");
-      err.tryNextProvider = true;
-    } else if(/api-not-enabled|has not been used|PERMISSION_DENIED|\b403\b|API key not valid|not.?enabled/i.test(raw + " " + code)){
-      err = new Error("Firebase AI Logic yoqilmagan yoki ruxsat berilmagan. Firebase Console → AI Services → AI Logic → Get started orqali Gemini Developer API'ni yoqing. [" + (code || "permission") + "]");
-      err.tryNextProvider = true;
-    } else if(/\b404\b|not found|NOT_FOUND|no longer available|is not supported|shut ?down/i.test(raw)){
-      err = new Error("Tanlangan Gemini modeli topilmadi. Sozlamalardan boshqa modelni tanlang.");
-      err.modelNotFound = true;
-      err.tryNextProvider = true;
-    } else if(/failed to fetch|networkerror|offline|load failed/i.test(raw) && !/fetch-error/i.test(code)){
-      console.error("[Maryam] Gemini tarmoq xatosi:", code, raw, e);
-      err = networkError();
-      err.message = err.message + " [" + (code || "net") + ": " + raw.replace(/\s+/g, " ").slice(0, 90) + "]";
-    } else {
-      console.error("[Maryam] Gemini xatosi:", code, raw, e);
-      const shortCode = (code || "noma'lum").replace(/^AI\//, "AI/").slice(0, 40);
-      err = new Error("Gemini xizmatiga ulanib bo‘lmadi. Firebase konsolida AI Logic (Gemini Developer API) yoqilganini tekshiring. [" + shortCode + "]");
-      err.retryable = false;
+  /* ===== GEMINI: model nomlari, xato tasnifi, streaming, diagnostika ===== */
+  // Firebase AI Logic qo'llab-quvvatlaydigan model nomlari ("-latest" taxalluslari QO'LLAB-QUVVATLANMAYDI).
+  const GEMINI_DEFAULT_MODEL = "gemini-3.7-flash";
+  const GEMINI_FALLBACK_MODELS = ["gemini-3.7-flash", "gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite"];
+  const GEMINI_VALID_MODELS = ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-pro-preview"];
+  function fixGeminiModel(){
+    if(!models.gemini || !GEMINI_VALID_MODELS.includes(models.gemini)){
+      console.info("[Maryam][Gemini] yaroqsiz model nomi almashtirildi:", models.gemini, "→", GEMINI_DEFAULT_MODEL);
+      models.gemini = GEMINI_DEFAULT_MODEL;
+      return true;
     }
+    return false;
+  }
+
+  function redactSecrets(s){
+    return String(s == null ? "" : s).replace(/AIza[0-9A-Za-z_\-]{20,}/g, "AIza***").replace(/Bearer\s+[A-Za-z0-9._\-]+/g, "Bearer ***");
+  }
+  function geminiErrorInfo(e){
+    const cd = (e && e.customErrorData) || {};
+    const rawMsg = redactSecrets((e && e.message) || e);
+    let status = cd.status || null;
+    if(!status){ const m = rawMsg.match(/\[\s*(\d{3})\b/); if(m) status = Number(m[1]); }
+    const details = Array.isArray(cd.errorDetails) ? cd.errorDetails : [];
+    const reasons = details.map(d => d && d.reason).filter(Boolean);
+    return {
+      name: (e && e.name) || "",
+      code: (e && e.code) || "",
+      status: status || 0,
+      statusText: cd.statusText || "",
+      reasons,
+      message: rawMsg,
+      isTypeError: !!(e && e.name === "TypeError")
+    };
+  }
+  function logGeminiError(model, info, e){
+    console.error("[Maryam][Gemini] XATO\n model: " + model +
+      "\n error code: " + (info.code || "-") +
+      "\n error message: " + info.message.slice(0, 400) +
+      "\n error status: " + (info.status || "-") + (info.statusText ? " " + info.statusText : "") +
+      (info.reasons.length ? "\n reasons: " + info.reasons.join(", ") : "") +
+      "\n raw error:", e);
+  }
+  // Xatoni aniq sababga ajratadi va foydalanuvchiga tushunarli xabar beradi (hech qachon "tarmoq xatosi" deb yashirmaydi).
+  function mapGeminiError(e, model){
+    const info = geminiErrorInfo(e);
+    const m = info.message;
+    const tag = " [" + [info.status || null, info.code || info.name || null].filter(Boolean).join(" · ") + "]";
+    let err, kind;
+    if(info.code === "maryam/no-ai"){
+      kind = "sdk"; err = new Error("Firebase AI Logic SDK yuklanmadi." + (window.MaryamFBDiag && window.MaryamFBDiag.aiError ? " (" + window.MaryamFBDiag.aiError.slice(0, 110) + ")" : "") + " Sahifani yangilang yoki boshqa tarmoqda urinib ko'ring.");
+    } else if(info.code === "maryam/timeout"){
+      kind = "timeout"; err = new Error("Gemini javobi vaqtida kelmadi. Internet sifatini tekshirib, qayta urinib ko'ring." + tag); err.retryable = true;
+    } else if(/app.?check|appcheck/i.test(m + " " + info.code) || info.reasons.some(r => /app.?check/i.test(r))){
+      kind = "appcheck"; err = new Error("App Check xatosi: Firebase Console → App Check'da AI Logic uchun \"Enforce\" yoqilgan, lekin ilovada App Check sozlanmagan. Enforce'ni o'chiring yoki fayl boshidagi RECAPTCHA_SITE_KEY ni to'ldiring." + tag); err.tryNextProvider = true;
+    } else if(info.status === 429 || /RESOURCE_EXHAUSTED|quota|rate.?limit|too many requests/i.test(m)){
+      kind = "quota"; err = new Error("So'rov limiti (quota) tugadi (429). Biroz kutib qayta urinib ko'ring yoki boshqa provayderga o'ting." + tag); err.tryNextProvider = true;
+    } else if(info.status === 404 && /genai config not found|config not found/i.test(m)){
+      kind = "setup"; err = new Error("Firebase loyihasida Gemini Developer API yoqilmagan (404). Console → AI Logic → Get started → Gemini Developer API → Enable." + tag); err.tryNextProvider = true;
+    } else if(info.status === 404 || /models\/[^ ]+ is not found|model.*not found|is not supported for/i.test(m)){
+      kind = "model"; err = new Error("Tanlangan Gemini modeli topilmadi (404): " + (model || "") + ". Sozlamalardan boshqa modelni tanlang." + tag); err.modelNotFound = true; err.tryNextProvider = true;
+    } else if(info.status === 401 || info.status === 403 || /PERMISSION_DENIED|API_KEY_SERVICE_BLOCKED|SERVICE_DISABLED|API_NOT_ENABLED|has not been used|is disabled|referer|API key not valid/i.test(m + " " + info.reasons.join(" ") + " " + info.code)){
+      kind = "permission";
+      let hint = "Firebase Console → AI Logic'da Gemini Developer API yoqilganini tekshiring.";
+      if(info.reasons.includes("API_KEY_SERVICE_BLOCKED") || /blocked/i.test(m)) hint = "Google Cloud → APIs & Services → Credentials → Browser key → API restrictions ichiga \"Firebase AI Logic API\" ni qo'shing.";
+      else if(info.reasons.includes("SERVICE_DISABLED") || /has not been used|is disabled|api-not-enabled/i.test(m + info.code)) hint = "Google Cloud Console'da \"Firebase AI Logic API\" va \"Generative Language API\" ni Enable qiling.";
+      else if(info.reasons.some(r => /REFERER/i.test(r)) || /referer/i.test(m)) hint = "API kalitning \"Website restrictions\" ro'yxatiga riskhaliyev.github.io ni qo'shing.";
+      err = new Error("Gemini ruxsat xatosi (" + (info.status || 403) + "). " + hint + tag); err.tryNextProvider = true;
+    } else if(info.status === 503 || info.status === 500 || info.status === 502 || info.status === 504 || /overloaded|unavailable|high demand/i.test(m)){
+      kind = "busy"; err = new Error("Google serveri hozir band (" + (info.status || 503) + "). Bir necha daqiqadan keyin qayta urinib ko'ring." + tag); err.retryable = true;
+    } else if(info.code === "AI/response-error" || /blocked|safety|SAFETY|PROHIBITED/i.test(m) && info.code.indexOf("AI/") === 0){
+      kind = "blocked"; err = new Error("Gemini bu so'rovga javob bermadi (xavfsizlik filtri). So'rovni boshqacha ifodalab ko'ring." + tag);
+    } else if((info.isTypeError || info.code === "AI/fetch-error" || /failed to fetch|networkerror|load failed|err_|offline/i.test(m)) && !info.status){
+      kind = "network";
+      err = new Error("Haqiqiy tarmoq xatosi: telefon Google Gemini serveriga (firebasevertexai.googleapis.com) yeta olmayapti. Boshqa internet yoki VPN bilan sinab ko'ring; profil oynasidagi \"Gemini diagnostikasi\" aniq sababni ko'rsatadi. [" + (info.code || info.name || "net") + ": " + m.replace(/\s+/g, " ").slice(0, 70) + "]"); err.retryable = true;
+    } else if(info.code.indexOf("AI/") === 0){
+      kind = "sdk"; err = new Error("Firebase AI Logic SDK xatosi: " + m.replace(/\s+/g, " ").slice(0, 140) + tag);
+    } else {
+      kind = "other"; err = new Error("Gemini xatosi: " + m.replace(/\s+/g, " ").slice(0, 160) + tag);
+    }
+    err.geminiKind = kind;
     return err;
   }
+
+  // Gemini endi API kalit bilan emas — Firebase AI Logic orqali, Firebase ilovasi bilan ishlaydi.
+  const geminiModelMap = {};
+  async function streamGeminiProvider(messages, key, model, onDelta){
+    const authed = !!currentUser, aiOk = !!(fbApi && fbApi.aiAvailable);
+    console.info("[Maryam][Gemini] START");
+    console.info("[Maryam][Gemini] model =", model);
+    console.info("[Maryam][Gemini] authenticated =", authed);
+    console.info("[Maryam][Gemini] firebaseAI =", aiOk);
+    if(!authed) throw new Error("Gemini'dan foydalanish uchun Google hisobingiz bilan kiring.");
+    if(!fbApi || !aiOk) throw mapGeminiError(Object.assign(new Error("Firebase AI Logic SDK yuklanmadi."), { code: "maryam/no-ai" }), model);
+    if(!GEMINI_VALID_MODELS.includes(model)) model = GEMINI_DEFAULT_MODEL;
+
+    // To'g'ri format: { contents } — ko'p bosqichli suhbat tarixi (role + parts) shu orqali uzatiladi.
+    const contents = messages.map(m => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [ ...(m.attachments||[]).map(a => ({ inlineData:{ mimeType:a.mimeType, data:a.dataBase64 } })), ...(m.text ? [{ text:m.text }] : []) ]
+    }));
+    const signal = currentAbortController ? currentAbortController.signal : undefined;
+    const system = buildSystemPrompt();
+    const tried = [];
+    let candidate = geminiModelMap[model] || model;
+    let full = "";
+    while(true){
+      tried.push(candidate);
+      try{
+        await fbApi.geminiStream({ model: candidate, systemInstruction: system, contents, temperature: 0.85, signal, onText: (chunk) => { full += chunk; onDelta(chunk, full); } });
+        if(candidate !== model) geminiModelMap[model] = candidate;
+        return full;
+      }catch(e){
+        if(isAbortError(e) || (signal && signal.aborted)) return full;
+        logGeminiError(candidate, geminiErrorInfo(e), e);
+        const mapped = mapGeminiError(e, candidate);
+        if(mapped.modelNotFound && !full){
+          const next = GEMINI_FALLBACK_MODELS.find(x => !tried.includes(x));
+          if(next){ console.warn("[Maryam][Gemini] model topilmadi, zaxira model sinaladi:", next); candidate = next; continue; }
+        }
+        throw mapped;
+      }
+    }
+  }
+
+  /* ---- Diagnostika: testGeminiConnection() ---- */
+  async function testGeminiConnection(onStep){
+    const steps = [];
+    const add = (name, ok, detail) => { const s = { name, ok, detail: detail || "" }; steps.push(s); if(onStep) onStep(steps.slice()); console.info("[Maryam][Test] " + (ok ? "OK  " : "XATO") + " | " + name + (detail ? " — " + detail : "")); return ok; };
+    const d = window.MaryamFBDiag || {};
+    add("Firebase ishga tushdi", !!fbApi, fbApi ? "SDK: " + (d.sdk || "?") : "Firebase yuklanmagan" + (d.sdkErrors && d.sdkErrors.length ? " · " + d.sdkErrors.join(" | ").slice(0, 160) : ""));
+    if(!fbApi) return steps;
+    add("Google foydalanuvchisi (Auth)", !!currentUser, currentUser ? (currentUser.email || currentUser.uid) : "tizimga kirilmagan");
+    add("Firebase AI Logic SDK yuklandi", !!d.aiLoaded, d.aiLoaded ? "" : (d.aiError || "yuklanmadi"));
+    add("AI nusxasi (getAI + GoogleAIBackend)", !!fbApi.aiAvailable, fbApi.aiAvailable ? "" : (d.aiError || "yaratilmadi"));
+    add("App Check", d.appCheck !== "xatolik", d.appCheck + (d.appCheckError ? " · " + d.appCheckError : "") + (d.appCheck === "o'chiq" ? " (Console'da Enforce yoqilmagan bo'lsa muammo emas)" : ""));
+    const hosts = [["firebasevertexai.googleapis.com", "https://firebasevertexai.googleapis.com/"], ["firestore.googleapis.com", "https://firestore.googleapis.com/"], ["gstatic.com", "https://www.gstatic.com/"]];
+    for(const [h, u] of hosts){ const r = await fbApi.probe(u); add("Tarmoq: " + h, r.ok, r.ok ? r.ms + " ms" : "yetib bo'lmadi — " + r.error); }
+    if(!fbApi.aiAvailable || !currentUser) return steps;
+    const model = GEMINI_VALID_MODELS.includes(models.gemini) ? models.gemini : GEMINI_DEFAULT_MODEL;
+    let pingOk = false;
+    try{
+      const t0 = performance.now();
+      const txt = await fbApi.geminiPing({ model });
+      pingOk = add("Gemini so'rovi (" + model + ")", true, Math.round(performance.now() - t0) + " ms · javob: " + String(txt).trim().slice(0, 40));
+    }catch(e){
+      const i = geminiErrorInfo(e);
+      logGeminiError(model, i, e);
+      const mapped = mapGeminiError(e, model);
+      add("Gemini so'rovi (" + model + ")", false, mapped.message.slice(0, 330) + (i.reasons.length ? " · reasons: " + i.reasons.join(",") : ""));
+    }
+    if(pingOk){
+      try{
+        const r = await fbApi.geminiPingStream({ model });
+        add("Streaming (generateContentStream)", r.chunks > 0, r.chunks + " ta bo'lak keldi");
+      }catch(e){
+        const i = geminiErrorInfo(e); logGeminiError(model, i, e);
+        add("Streaming (generateContentStream)", false, mapGeminiError(e, model).message.slice(0, 300));
+      }
+    }
+    return steps;
+  }
+  window.testGeminiConnection = testGeminiConnection;
+
+  const geminiDiagBtn = $("geminiDiagBtn");
+  const geminiDiagOut = $("geminiDiagOut");
+  let geminiDiagRunning = false;
+  function renderDiag(steps, running){
+    geminiDiagOut.textContent = "";
+    steps.forEach(s => {
+      const row = document.createElement("div");
+      row.className = "diag-row " + (s.ok ? "ok" : "bad");
+      row.textContent = (s.ok ? "✅ " : "❌ ") + s.name + (s.detail ? " — " + s.detail : "");
+      geminiDiagOut.appendChild(row);
+    });
+    if(running){ const r = document.createElement("div"); r.className = "diag-row"; r.textContent = "⏳ Tekshirilmoqda…"; geminiDiagOut.appendChild(r); }
+    geminiDiagOut.style.display = "block";
+  }
+  geminiDiagBtn.addEventListener("click", async () => {
+    if(geminiDiagRunning) return;
+    geminiDiagRunning = true; geminiDiagBtn.disabled = true;
+    renderDiag([], true);
+    try{ const steps = await testGeminiConnection((s) => renderDiag(s, true)); renderDiag(steps, false); }
+    catch(e){ console.error("[Maryam][Test]", e); geminiDiagOut.textContent = "Diagnostika xatosi: " + redactSecrets(e && e.message); geminiDiagOut.style.display = "block"; }
+    geminiDiagRunning = false; geminiDiagBtn.disabled = false;
+  });
 
   /* ---- Bulut (Firestore): imzo, o'tkazish, birlashtirish ---- */
   const encoder = new TextEncoder();
@@ -4331,6 +4488,7 @@ Mavzu/ko'rsatma: "${topic}"`;
     // Model/provayder tanlovi: yangiroq tomon yutadi
     if((rs.updatedAt || 0) > settingsAt){
       if(rs.models) models = Object.assign(models, rs.models);
+      fixGeminiModel();
       if(rs.providerKey && PROVIDERS[rs.providerKey]) providerKey = rs.providerKey;
       if(rs.providerBaseUrls) providerBaseUrls = Object.assign(providerBaseUrls, rs.providerBaseUrls);
       if(rs.theme === "light" || rs.theme === "dark"){ applyTheme(rs.theme); kvSet(THEME_KEY, rs.theme); }
@@ -4579,12 +4737,12 @@ Mavzu/ko'rsatma: "${topic}"`;
         const cfg = JSON.parse(savedConfig);
         if(cfg.apiKeys) apiKeys = Object.assign(apiKeys, cfg.apiKeys);
         if(cfg.models) models = Object.assign(models, cfg.models);
+        if(fixGeminiModel()) kvSet(AI_CONFIG_KEY, JSON.stringify({ apiKeys: Object.assign({}, apiKeys, { gemini: "" }), models, providerKey, providerBaseUrls }));
         if(cfg.providerKey && PROVIDERS[cfg.providerKey]) providerKey = cfg.providerKey;
         if(cfg.providerBaseUrls) providerBaseUrls = Object.assign(providerBaseUrls, cfg.providerBaseUrls);
         apiKeys.gemini = "";
       }catch(e){}
     }
-    if(providerKey === "gemini") models.gemini = normalizeGeminiModel(models.gemini);
     buildProviderQuickSelect();
     updateStatusUI();
 
