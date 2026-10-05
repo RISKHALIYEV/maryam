@@ -1297,10 +1297,10 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
   const PROVIDERS = {
     gemini:{ label:"Maryam", full:"Maryam AI", keyPlaceholder:"AIzaSy...", helpUrl:"https://aistudio.google.com/apikey",
       models:[
-        {id:"gemini-3.7-flash", label:"Maryam Nur — tavsiya etiladi"},
+        {id:"gemini-3.5-flash-lite", label:"Maryam Uchqun — tavsiya etiladi"},
+        {id:"gemini-3.7-flash", label:"Maryam Nur — kuchliroq"},
         {id:"gemini-3.8-flash", label:"Maryam Tong — eng yangi"},
         {id:"gemini-3.5-flash", label:"Maryam Shamol — tez va zamonaviy"},
-        {id:"gemini-3.5-flash-lite", label:"Maryam Uchqun — yengil va tejamkor"},
         {id:"gemini-3.1-pro-preview", label:"Maryam Yulduz — eng kuchli"}
       ], supportsImage:true, supportsVideo:true },
     openai:{ label:"OpenAI", full:"OpenAI", keyPlaceholder:"sk-...", helpUrl:"https://platform.openai.com/api-keys",
@@ -1568,7 +1568,7 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
   };
 
   let apiKeys = { gemini:"", openai:"", claude:"", groq:"", deepseek:"", openrouter:"", cerebras:"", mistral:"", huggingface:"", ollama:"" };
-  let models = { gemini:"gemini-3.7-flash", openai:"gpt-5.5", claude:"claude-sonnet-5", groq:"openai/gpt-oss-120b", deepseek:"deepseek-v4-flash", openrouter:"deepseek/deepseek-r1:free", cerebras:"gpt-oss-120b", mistral:"mistral-small-latest", huggingface:"", ollama:"llama3.2" };
+  let models = { gemini:"gemini-3.5-flash-lite", openai:"gpt-5.5", claude:"claude-sonnet-5", groq:"openai/gpt-oss-120b", deepseek:"deepseek-v4-flash", openrouter:"deepseek/deepseek-r1:free", cerebras:"gpt-oss-120b", mistral:"mistral-small-latest", huggingface:"", ollama:"llama3.2" };
   let providerBaseUrls = { ollama: PROVIDERS.ollama.defaultBaseUrl };
   let isSending = false;
   let currentAbortController = null;
@@ -1813,7 +1813,7 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
 
   function persistAiConfig(){
     apiKeys.gemini = ""; // Gemini kaliti hech qachon saqlanmaydi
-    const cfg = { apiKeys, models, providerKey, providerBaseUrls };
+    const cfg = { apiKeys, models, providerKey, providerBaseUrls, modelUserChosen };
     kvSet(AI_CONFIG_KEY, JSON.stringify(cfg));
     markSettingsDirty();
     if(googleAccessToken){
@@ -1924,7 +1924,9 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
       if(!m){ customModelInput.focus(); return; }
       models[modalProvider] = m;
     } else {
+      const prevModel = models[modalProvider];
       models[modalProvider] = modelSelect.value === "__custom" ? (customModelInput.value.trim() || cfg.models[0].id) : modelSelect.value;
+      if(modalProvider === "gemini" && models.gemini !== prevModel) modelUserChosen = true;
     }
     if(cfg.customBaseUrl){
       providerBaseUrls[modalProvider] = baseUrlInput.value.trim() || cfg.defaultBaseUrl;
@@ -3753,6 +3755,7 @@ Mavzu/ko'rsatma: "${topic}"`;
         if(remote.apiKeys) apiKeys = Object.assign(apiKeys, remote.apiKeys);
         apiKeys.gemini = "";
         if(remote.models) models = Object.assign(models, remote.models);
+        applyModelPreference(remote.modelUserChosen || modelUserChosen);
         fixGeminiModel();
         if(remote.providerKey && PROVIDER_ORDER.includes(remote.providerKey)) providerKey = remote.providerKey;
         if(remote.providerBaseUrls) providerBaseUrls = Object.assign(providerBaseUrls, remote.providerBaseUrls);
@@ -4315,9 +4318,15 @@ Mavzu/ko'rsatma: "${topic}"`;
 
   /* ===== GEMINI: model nomlari, xato tasnifi, streaming, diagnostika ===== */
   // Firebase AI Logic qo'llab-quvvatlaydigan model nomlari ("-latest" taxalluslari QO'LLAB-QUVVATLANMAYDI).
-  const GEMINI_DEFAULT_MODEL = "gemini-3.7-flash";
-  const GEMINI_FALLBACK_MODELS = ["gemini-3.7-flash", "gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite"];
+  const GEMINI_DEFAULT_MODEL = "gemini-3.5-flash-lite"; // Maryam Uchqun — standart model
+  let modelUserChosen = false; // foydalanuvchi modelni o'zi tanlagan bo'lsa true: shundan keyin uning tanlovi saqlanadi
+  const GEMINI_FALLBACK_MODELS = ["gemini-3.5-flash-lite", "gemini-3.7-flash", "gemini-3.8-flash", "gemini-3.5-flash"];
   const GEMINI_VALID_MODELS = ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-pro-preview"];
+  // Foydalanuvchi hali o'zi model tanlamagan bo'lsa — Maryam Uchqun; tanlagan bo'lsa — uning tanlovi.
+  function applyModelPreference(chosen){
+    modelUserChosen = !!chosen;
+    if(!modelUserChosen) models.gemini = GEMINI_DEFAULT_MODEL;
+  }
   function fixGeminiModel(){
     if(!models.gemini || !GEMINI_VALID_MODELS.includes(models.gemini)){
       console.info("[Maryam][Gemini] yaroqsiz model nomi almashtirildi:", models.gemini, "→", GEMINI_DEFAULT_MODEL);
@@ -4597,6 +4606,7 @@ Mavzu/ko'rsatma: "${topic}"`;
     // Model/provayder tanlovi: yangiroq tomon yutadi
     if((rs.updatedAt || 0) > settingsAt){
       if(rs.models) models = Object.assign(models, rs.models);
+      applyModelPreference(rs.modelUserChosen);
       fixGeminiModel();
       if(rs.providerKey && PROVIDER_ORDER.includes(rs.providerKey)) providerKey = rs.providerKey;
       if(rs.providerBaseUrls) providerBaseUrls = Object.assign(providerBaseUrls, rs.providerBaseUrls);
@@ -4604,7 +4614,7 @@ Mavzu/ko'rsatma: "${topic}"`;
       settingsAt = rs.updatedAt || settingsAt;
       kvSet(SETTINGS_AT_KEY, String(settingsAt));
       apiKeys.gemini = "";
-      kvSet(AI_CONFIG_KEY, JSON.stringify({ apiKeys, models, providerKey, providerBaseUrls }));
+      kvSet(AI_CONFIG_KEY, JSON.stringify({ apiKeys, models, providerKey, providerBaseUrls, modelUserChosen }));
       buildProviderQuickSelect();
       updateStatusUI();
     } else if((rs.updatedAt || 0) < settingsAt){
@@ -4723,7 +4733,7 @@ Mavzu/ko'rsatma: "${topic}"`;
 
   async function pushSettings(){
     const data = {
-      models, providerKey, providerBaseUrls,
+      models, providerKey, providerBaseUrls, modelUserChosen,
       theme: document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark",
       skillsJson: JSON.stringify(skills),
       memoryJson: JSON.stringify(globalMemory),
@@ -4846,7 +4856,9 @@ Mavzu/ko'rsatma: "${topic}"`;
         const cfg = JSON.parse(savedConfig);
         if(cfg.apiKeys) apiKeys = Object.assign(apiKeys, cfg.apiKeys);
         if(cfg.models) models = Object.assign(models, cfg.models);
-        if(fixGeminiModel()) kvSet(AI_CONFIG_KEY, JSON.stringify({ apiKeys: Object.assign({}, apiKeys, { gemini: "" }), models, providerKey, providerBaseUrls }));
+        applyModelPreference(cfg.modelUserChosen);
+        fixGeminiModel();
+        kvSet(AI_CONFIG_KEY, JSON.stringify({ apiKeys: Object.assign({}, apiKeys, { gemini: "" }), models, providerKey, providerBaseUrls, modelUserChosen }));
         if(cfg.providerKey && PROVIDER_ORDER.includes(cfg.providerKey)) providerKey = cfg.providerKey;
         if(cfg.providerBaseUrls) providerBaseUrls = Object.assign(providerBaseUrls, cfg.providerBaseUrls);
         apiKeys.gemini = "";
