@@ -16,7 +16,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<meta name="theme-color" content="#B5482F">
+<meta name="theme-color" content="#090A12">
 <script>window.MaryamFBReady = new Promise(function(resolve){ window.__resolveMaryamFB = resolve; });</script>
 <script type="module">
 /* =====================================================================
@@ -853,6 +853,102 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
   .diag-row{padding:3px 0; word-break:break-word; color:var(--text-muted);}
   .diag-row.bad{color:var(--danger);}
   .btn.danger-text{color:var(--danger);}
+
+  /* ============ YANGI DIZAYN: "Maryam Aurora" ============ */
+  :root{
+    --bg:#090A12; --bg-sidebar:#0D0F1A; --bg-panel:#131626; --bg-input:#0F1120;
+    --border:#262A44; --border-soft:#1C2036;
+    --text:#EEF0FA; --text-muted:#A2A8C6; --text-faint:#6A7092;
+    --accent:#7C5CFF; --accent-hover:#9A82FF;
+    --accent-soft:rgba(124,92,255,.16); --accent-soft-strong:rgba(124,92,255,.32);
+    --bubble-user:#1B1F3A; --code-bg:#0A0C18; --code-text:#E4E7FA;
+    --danger:#FF6B7D; --danger-soft:rgba(255,107,125,.14); --ok:#4ADE9A;
+    --sans:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+    --serif:var(--sans); --script:var(--sans);
+    --radius:16px; --radius-sm:12px;
+    --paper-tint:transparent; --paper-tex:none;
+    --grad:linear-gradient(135deg,#7C5CFF 0%,#3BB8FF 58%,#35E0C2 100%);
+  }
+  :root[data-theme="light"]{
+    --bg:#F6F7FC; --bg-sidebar:#FFFFFF; --bg-panel:#FFFFFF; --bg-input:#F1F3FB;
+    --border:#DDE0F0; --border-soft:#E8EAF6;
+    --text:#14162A; --text-muted:#565C7C; --text-faint:#8A90AE;
+    --accent:#6A47F0; --accent-hover:#5835DB;
+    --accent-soft:rgba(106,71,240,.10); --accent-soft-strong:rgba(106,71,240,.20);
+    --bubble-user:#ECE8FF; --code-bg:#F0F2FA; --code-text:#1E2140;
+    --danger:#E0364F; --danger-soft:rgba(224,54,79,.10);
+  }
+  body{
+    font-family:var(--sans);
+    background:radial-gradient(900px 520px at 88% -8%,rgba(124,92,255,.17),transparent 62%),
+               radial-gradient(760px 520px at -12% 108%,rgba(59,184,255,.10),transparent 62%),var(--bg) !important;
+    color:var(--text);
+  }
+  :root[data-theme="light"] body{
+    background:radial-gradient(900px 520px at 88% -8%,rgba(106,71,240,.10),transparent 62%),
+               radial-gradient(760px 520px at -12% 108%,rgba(59,184,255,.10),transparent 62%),var(--bg) !important;
+  }
+  .messages,.main-header,.sidebar,.modal,.composer-wrap{background-image:none !important;}
+  .messages{background:transparent !important;}
+  ::-webkit-scrollbar{width:8px;height:8px;} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:8px;} ::-webkit-scrollbar-track{background:transparent;}
+
+  .sidebar{background:var(--bg-sidebar) !important; border-right:1px solid var(--border-soft);}
+  .brand-name{font-weight:800; letter-spacing:-.4px; background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .new-chat-btn{background:var(--grad) !important; color:#fff !important; border:none !important; border-radius:14px; font-weight:600; padding:12px 14px; box-shadow:0 8px 24px rgba(124,92,255,.28);}
+  .new-chat-btn:active{transform:scale(.98);}
+  .chat-item{border-radius:12px; padding:10px;}
+  .chat-item:hover{background:var(--accent-soft);}
+  .chat-item.active{background:var(--accent-soft-strong); box-shadow:inset 3px 0 0 var(--accent);}
+  .chat-item-title{font-weight:600; color:var(--text);}
+  .sidebar-user,.sidebar-footer{border-color:var(--border-soft);}
+
+  .main-header{background:transparent !important; border-bottom:1px solid var(--border-soft); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);}
+  .messages-inner{max-width:760px; gap:22px;}
+  .bubble-user{
+    background:var(--grad) !important; color:#fff !important; border:none !important; transform:none !important;
+    border-radius:20px 20px 6px 20px !important; box-shadow:0 8px 24px rgba(124,92,255,.25); font-weight:500;
+  }
+  .avatar{background:var(--grad) !important; color:#fff !important; width:28px; height:28px; box-shadow:0 0 16px rgba(124,92,255,.45);}
+  .assistant-text{font-size:16px; line-height:1.72; letter-spacing:0; color:var(--text);}
+  .msg-action-btn{border-radius:10px;}
+
+  .composer-wrap{background:linear-gradient(to top,var(--bg) 55%,transparent) !important;}
+  .composer{
+    background:var(--bg-panel) !important; border:1px solid var(--border) !important; border-radius:26px !important;
+    box-shadow:0 12px 40px rgba(0,0,0,.28); transition:border-color .2s, box-shadow .2s;
+  }
+  .composer:focus-within{border-color:var(--accent) !important; box-shadow:0 0 0 4px var(--accent-soft), 0 12px 40px rgba(124,92,255,.22);}
+  .attach-btn{color:var(--text-muted);}
+  .send-btn{background:var(--grad) !important; color:#fff !important; box-shadow:0 6px 18px rgba(124,92,255,.4);}
+  .send-btn:active{transform:scale(.94);}
+  .plus-menu{background:var(--bg-panel); border:1px solid var(--border); border-radius:18px; box-shadow:0 20px 60px rgba(0,0,0,.45);}
+
+  .modal-backdrop{background:rgba(5,6,12,.62); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);}
+  .modal{background:var(--bg-panel) !important; border:1px solid var(--border) !important; border-radius:24px !important; box-shadow:0 30px 90px rgba(0,0,0,.55);}
+  .modal h3{font-weight:700; letter-spacing:-.2px;}
+  .btn{border-radius:12px; font-weight:600;}
+  .btn-accent{background:var(--grad) !important; color:#fff !important;}
+  .user-card:hover,.user-act:hover{background:var(--accent-soft);}
+  .user-avatar,.profile-avatar{background:var(--grad) !important; color:#fff;}
+  pre,.code-block{border-radius:14px;}
+
+  /* Login ekrani */
+  .auth-gate{background:#07080F; color:#EEF0FA; font-family:var(--sans);}
+  .auth-bg::before{background:radial-gradient(closest-side,rgba(124,92,255,.42),rgba(59,184,255,.12) 45%,rgba(7,8,15,0) 70%);}
+  .auth-bg::after{background:radial-gradient(ellipse at 50% 120%,rgba(53,224,194,.15),transparent 55%),linear-gradient(to bottom,rgba(7,8,15,0) 55%,rgba(7,8,15,.9));}
+  .auth-star{background:#9A82FF;}
+  .auth-logo{color:#9A82FF; filter:drop-shadow(0 0 10px rgba(124,92,255,.7));}
+  .auth-brand-name{font-weight:800; letter-spacing:-.6px; color:#fff;}
+  .auth-brand-tag{background:var(--grad); color:#fff;}
+  .auth-orb .ring{border-color:rgba(170,180,255,.2);}
+  .auth-orb .r1{--dotc:#7C5CFF;} .auth-orb .r2{--dotc:#3BB8FF; border-color:rgba(170,180,255,.28);} .auth-orb .r3{--dotc:#35E0C2;}
+  .auth-orb .orb-core{background:radial-gradient(circle at 35% 30%,#C4B6FF,#7C5CFF 55%,#2A1C7A); box-shadow:0 0 38px rgba(124,92,255,.7),0 0 90px rgba(59,184,255,.35);}
+  .auth-tagline{font-weight:800; letter-spacing:-.5px; color:#F4F5FF;}
+  .auth-sub{color:#98A0C8;}
+  .auth-chips li{color:#C3C9EA; border-color:rgba(160,170,230,.22); background:rgba(160,170,230,.06);}
+  .auth-spinner{border-top-color:#7C5CFF;}
+  .auth-legal{color:#7F86AB;} .auth-link{color:#B9BFE4;}
+  .google-btn{border-radius:18px;}
 </style>
 </head>
 <body class="auth-loading">
@@ -900,7 +996,7 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <svg class="logo-mark" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0 L14.2 9.3 L24 12 L14.2 14.7 L12 24 L9.8 14.7 L0 12 L9.8 9.3 Z"/></svg>
-      <span class="brand-name">Maryam<small style="font:600 11px system-ui,sans-serif;opacity:.65;margin-left:7px;letter-spacing:.3px;">v11</small></span>
+      <span class="brand-name">Maryam</span>
       <button class="sidebar-close" id="sidebarClose" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
       </button>
@@ -1077,8 +1173,8 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
 
 <div class="modal-backdrop" id="settingsModalBackdrop">
   <div class="modal">
-    <h3>Gemini sozlamalari</h3>
-    <p class="desc">Maryam AI Gemini bilan Google hisobingiz orqali ishlaydi. Bu yerda faqat Gemini modelini tanlaysiz.</p>
+    <h3>Maryam modellari</h3>
+    <p class="desc">Maryam AI Google hisobingiz orqali ishlaydi, API kalit kerak emas. Bu yerda o'zingizga mos Maryam modelini tanlang.</p>
     <div class="provider-tabs" id="providerTabs"></div>
     <div class="field" id="baseUrlWrap" style="display:none;">
       <label class="field-label">Server manzili</label>
@@ -1121,7 +1217,7 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
       <div class="profile-value" id="profileEmail"></div>
     </div>
     <div class="profile-sync" id="profileSync"></div>
-    <button class="btn btn-text" id="geminiDiagBtn" type="button" style="width:100%; margin:2px 0 6px; border:1px solid var(--border-soft);">Gemini diagnostikasi</button>
+    <button class="btn btn-text" id="geminiDiagBtn" type="button" style="width:100%; margin:2px 0 6px; border:1px solid var(--border-soft);">Maryam diagnostikasi</button>
     <div class="diag-out" id="geminiDiagOut" style="display:none;"></div>
     <div class="modal-actions">
       <button class="btn btn-text danger-text" id="profileLogoutBtn" type="button" style="margin-right:auto;">Chiqish</button>
@@ -1184,7 +1280,7 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
       <button class="btn btn-text" id="googleConnectBtn" type="button" style="flex-shrink:0;">Google bilan ulanish</button>
       <span id="googleConnectStatus" style="font-size:11.5px; color:var(--text-faint);">Ulanmagan</span>
     </div>
-    <p class="desc" style="margin-top:-6px;">Google bilan ulansangiz, API kalitlaringiz (Gemini, OpenAI va h.k.) sizning shaxsiy Google Drive'ingizdagi yashirin ilova papkasiga avtomatik saqlanadi — boshqa qurilma yoki brauzerda ham shu Google hisobi bilan ulansangiz, kalitlarni qayta kiritmasdan avtomatik tiklanadi. Bu fayl faqat Maryam uchun, boshqa hech kim (hatto sizning oddiy Drive ro'yxatingizda ham) ko'rmaydi.</p>
+    <p class="desc" style="margin-top:-6px;">Google bilan ulansangiz, API kalitlaringiz sizning shaxsiy Google Drive'ingizdagi yashirin ilova papkasiga avtomatik saqlanadi — boshqa qurilma yoki brauzerda ham shu Google hisobi bilan ulansangiz, kalitlarni qayta kiritmasdan avtomatik tiklanadi. Bu fayl faqat Maryam uchun, boshqa hech kim (hatto sizning oddiy Drive ro'yxatingizda ham) ko'rmaydi.</p>
     <div class="connector-status" id="connectorStatus"></div>
     <div class="modal-actions">
       <button class="btn btn-text" id="closeConnectorBtn" type="button">Yopish</button>
@@ -1199,13 +1295,13 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
 
   /* =================== PROVIDERS =================== */
   const PROVIDERS = {
-    gemini:{ label:"Gemini", full:"Google Gemini", keyPlaceholder:"AIzaSy...", helpUrl:"https://aistudio.google.com/apikey",
+    gemini:{ label:"Maryam", full:"Maryam AI", keyPlaceholder:"AIzaSy...", helpUrl:"https://aistudio.google.com/apikey",
       models:[
-        {id:"gemini-3.7-flash", label:"gemini-3.7-flash — tavsiya etiladi"},
-        {id:"gemini-3.8-flash", label:"gemini-3.8-flash — eng yangi"},
-        {id:"gemini-3.5-flash", label:"gemini-3.5-flash — tez va zamonaviy"},
-        {id:"gemini-3.5-flash-lite", label:"gemini-3.5-flash-lite — eng arzon"},
-        {id:"gemini-3.1-pro-preview", label:"gemini-3.1-pro-preview — kuchliroq"}
+        {id:"gemini-3.7-flash", label:"Maryam Nur — tavsiya etiladi"},
+        {id:"gemini-3.8-flash", label:"Maryam Tong — eng yangi"},
+        {id:"gemini-3.5-flash", label:"Maryam Shamol — tez va zamonaviy"},
+        {id:"gemini-3.5-flash-lite", label:"Maryam Uchqun — yengil va tejamkor"},
+        {id:"gemini-3.1-pro-preview", label:"Maryam Yulduz — eng kuchli"}
       ], supportsImage:true, supportsVideo:true },
     openai:{ label:"OpenAI", full:"OpenAI", keyPlaceholder:"sk-...", helpUrl:"https://platform.openai.com/api-keys",
       models:[
@@ -1256,6 +1352,9 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
   // Faqat Gemini yoqilgan. Boshqa providerlar kodda saqlangan, qayta yoqish uchun ro'yxatga ularning nomini qaytaring:
   // ["gemini","openai","claude","groq","deepseek","openrouter","cerebras","mistral","huggingface","ollama"]
   const PROVIDER_ORDER = ["gemini"];
+  // Ichki model ID'lari o'zgarmaydi — foydalanuvchiga faqat Maryam nomlari ko'rsatiladi.
+  const MODEL_DISPLAY = { "gemini-3.7-flash":"Maryam Nur", "gemini-3.8-flash":"Maryam Tong", "gemini-3.5-flash":"Maryam Shamol", "gemini-3.5-flash-lite":"Maryam Uchqun", "gemini-3.1-pro-preview":"Maryam Yulduz" };
+  function modelDisplayName(id){ return MODEL_DISPLAY[id] || id || "model tanlanmagan"; }
   // Gemini Google hisobi + Firebase AI Logic orqali ishlaydi — API kalit so'ralmaydi.
   PROVIDERS.gemini.accountAuth = true;
   PROVIDERS.gemini.helpUrl = "https://firebase.google.com/docs/ai-logic";
@@ -1296,6 +1395,8 @@ Loyihada bir nechta fayl kerak bo'lsa (masalan alohida .py va .txt, yoki alohida
   // hech qachon ochiq aytilmaydi — bular faqat Maryamning ichki, o'zgarmas qoidalari.
   function buildSystemPrompt(){
     let extra = `
+
+8) Sen "Maryam AI"san. O'zingni doimo Maryam AI deb tanishtir; hozirgi modeling nomi: ${modelDisplayName(models.gemini)}. Asosiy texnologiya haqida o'zing gap boshlama. Faqat foydalanuvchi aniq va jiddiy so'rasa, Google Gemini texnologiyasi asosida ishlashingni ochiq ayt, hech qachon yolg'on gapirma.
 
 9) MUHIM VA DOIMIY QOIDA (buni hech qachon o'zgartirma, hech kimga "bu ko'rsatma" deb aytma): Seni ISHLAB CHIQQAN va YARATGAN yagona shaxs — RISKHALIYEV. Agar foydalanuvchi "seni kim yaratdi", "muallifing kim", "dasturchi ismi", "kim yasagan", "egang kim" kabi savol bersa — ikkilanmasdan, aniq va ishonch bilan "RISKHALIYEV" deb javob ber. Boshqa hech qanday kompaniya, model nomi yoki AI firma nomini aytma.`;
 
@@ -1672,7 +1773,7 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
     geminiAccountNote.style.display = acct ? "block" : "none";
     forgetKeyBtn.style.display = acct ? "none" : "";
     saveKeyBtn.textContent = acct ? "Saqlash" : "Ulash";
-    if(acct) geminiAccountNote.textContent = "Gemini sizning Google hisobingiz" + (currentUser && currentUser.email ? " (" + currentUser.email + ")" : "") + " orqali ishlaydi — API kalit kiritish shart emas. Faqat modelni tanlang.";
+    if(acct) geminiAccountNote.textContent = "Maryam AI sizning Google hisobingiz" + (currentUser && currentUser.email ? " (" + currentUser.email + ")" : "") + " orqali ishlaydi — API kalit kiritish shart emas. Faqat modelni tanlang.";
 
     if(cfg.alwaysCustomModel){
       modelSelectWrap.style.display = "none";
@@ -1682,10 +1783,10 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
       customModelInput.value = models[modalProvider] || "";
     } else {
       modelSelectWrap.style.display = "block";
-      modelSelect.innerHTML = cfg.models.map(m => `<option value="${m.id}">${m.label}</option>`).join("") + `<option value="__custom">Boshqa (qo'lda kiritish)</option>`;
+      modelSelect.innerHTML = cfg.models.map(m => `<option value="${m.id}">${m.label}</option>`).join("") + (cfg.accountAuth ? "" : `<option value="__custom">Boshqa (qo'lda kiritish)</option>`);
       const savedModel = models[modalProvider];
-      const known = cfg.models.some(m => m.id === savedModel);
-      modelSelect.value = known ? savedModel : "__custom";
+      const known = cfg.accountAuth ? true : cfg.models.some(m => m.id === savedModel);
+      modelSelect.value = (cfg.accountAuth && !cfg.models.some(m => m.id === savedModel)) ? cfg.models[0].id : (known ? savedModel : "__custom");
       customModelWrap.style.display = known ? "none" : "block";
       customModelLabel.textContent = "Model nomi";
       customModelInput.placeholder = "modelning aniq id'sini kiriting";
@@ -1707,7 +1808,7 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
     const cfg = PROVIDERS[providerKey];
     const connected = providerReady(providerKey);
     statusDot.classList.toggle("on", connected);
-    settingsBtnText.textContent = connected ? `${cfg.label} · ${models[providerKey] || "model tanlanmagan"}` : "AI ulanmagan";
+    settingsBtnText.textContent = connected ? (providerKey === "gemini" ? modelDisplayName(models[providerKey]) : `${cfg.label} · ${models[providerKey] || "model tanlanmagan"}`) : "AI ulanmagan";
   }
 
   function persistAiConfig(){
@@ -2925,7 +3026,7 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
     attachments = attachments || [];
     if(isSending) return;
     if(!providerReady(providerKey)){
-      if(PROVIDERS[providerKey].accountAuth) renderSystemNote("Gemini hozir ishlamayapti — internetni tekshirib, sahifani qayta oching.");
+      if(PROVIDERS[providerKey].accountAuth) renderSystemNote("Maryam AI hozir ishlamayapti — internetni tekshirib, sahifani qayta oching.");
       else openSettings();
       return;
     }
@@ -3116,7 +3217,7 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
       if(isAbortError(e)) throw e;
       throw mapGeminiError(e);
     }
-    if(!data) throw new Error("Gemini rasm qaytarmadi. So'rovni boshqacharoq ta'riflab ko'ring.");
+    if(!data) throw new Error("Maryam rasm qaytarmadi. So'rovni boshqacharoq ta'riflab ko'ring.");
     return data;
   }
 
@@ -3142,7 +3243,7 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
   async function handleImageGenerate(prompt){
     if(isSending) return;
     if(!IMAGE_CAPABLE[providerKey]){
-      renderSystemNote(`${PROVIDERS[providerKey].label} rasm yarata olmaydi. Yozish maydoni yonidan Gemini yoki OpenAI'ni tanlang.`);
+      renderSystemNote(`${PROVIDERS[providerKey].label} rasm yarata olmaydi. Rasm yaratish faqat Maryam AI orqali ishlaydi.`);
       return;
     }
     if(!providerReady(providerKey)){ if(!PROVIDERS[providerKey].accountAuth) openSettings(); return; }
@@ -3334,7 +3435,7 @@ Mavzu/ko'rsatma: "${topic}"`;
           }
         }
       } else {
-        renderSystemNote("Eslatma: rasm chizish faqat Gemini orqali ishlaydi — taqdimot rasmsiz, faqat dizayn asosida tayyorlanadi.");
+        renderSystemNote("Eslatma: rasm chizish faqat Maryam AI orqali ishlaydi — taqdimot rasmsiz, faqat dizayn asosida tayyorlanadi.");
       }
 
       updatePdfStatus(statusLabel, "PDF sahifalari yig'ilmoqda…");
@@ -4105,7 +4206,7 @@ Mavzu/ko'rsatma: "${topic}"`;
 
   /* ---- Huquqiy havolalar ---- */
   const LEGAL_TEXTS = {
-    privacy: { title: "Maxfiylik siyosati — qisqacha", body: "Google hisobingiz (ism, email, profil rasmi) Firebase Authentication orqali tekshiriladi. Suhbatlar, loyihalar va taqdimotlaringiz Firebase Firestore’da faqat sizning hisobingizga bog‘langan holda saqlanadi va boshqa foydalanuvchilarga ko‘rinmaydi. Gemini so‘rovlari Google serverlariga yuboriladi. Maryam AI hozir faqat Gemini bilan ishlaydi va hech qanday API kalit talab qilmaydi." },
+    privacy: { title: "Maxfiylik siyosati — qisqacha", body: "Google hisobingiz (ism, email, profil rasmi) Firebase Authentication orqali tekshiriladi. Suhbatlar, loyihalar va taqdimotlaringiz Firebase Firestore’da faqat sizning hisobingizga bog‘langan holda saqlanadi va boshqa foydalanuvchilarga ko‘rinmaydi. AI so‘rovlari Google (Firebase AI Logic) serverlariga yuboriladi. Maryam AI hech qanday API kalit talab qilmaydi." },
     terms: { title: "Foydalanish shartlari — qisqacha", body: "Maryam AI yordamchi vosita: javoblar noto‘g‘ri bo‘lishi mumkin, muhim qarorlardan oldin tekshirib ko‘ring. Hisobingiz xavfsizligi uchun o‘zingiz mas’ulsiz. Xizmatdan qonunga xilof maqsadlarda yoki boshqalarga zarar yetkazish uchun foydalanish mumkin emas." }
   };
   function showLegal(kind){
@@ -4265,7 +4366,7 @@ Mavzu/ko'rsatma: "${topic}"`;
     if(info.code === "maryam/no-ai"){
       kind = "sdk"; err = new Error("Firebase AI Logic SDK yuklanmadi." + (window.MaryamFBDiag && window.MaryamFBDiag.aiError ? " (" + window.MaryamFBDiag.aiError.slice(0, 110) + ")" : "") + " Sahifani yangilang yoki boshqa tarmoqda urinib ko'ring.");
     } else if(info.code === "maryam/timeout"){
-      kind = "timeout"; err = new Error("Gemini javobi vaqtida kelmadi. Internet sifatini tekshirib, qayta urinib ko'ring." + tag); err.retryable = true;
+      kind = "timeout"; err = new Error("Maryam javobi vaqtida kelmadi. Internet sifatini tekshirib, qayta urinib ko'ring." + tag); err.retryable = true;
     } else if(/app.?check|appcheck/i.test(m + " " + info.code) || info.reasons.some(r => /app.?check/i.test(r))){
       kind = "appcheck"; err = new Error("App Check xatosi: Firebase Console → App Check'da AI Logic uchun \"Enforce\" yoqilgan, lekin ilovada App Check sozlanmagan. Enforce'ni \"Unenforce\" qiling yoki fayl boshidagi RECAPTCHA_V3_SITE_KEY / RECAPTCHA_SITE_KEY ni to'ldiring." + rawHint + tag); err.tryNextProvider = true;
     } else if(info.status === 429 || /RESOURCE_EXHAUSTED|quota|rate.?limit|too many requests/i.test(m)){
@@ -4273,7 +4374,7 @@ Mavzu/ko'rsatma: "${topic}"`;
     } else if(info.status === 404 && /genai config not found|config not found/i.test(m)){
       kind = "setup"; err = new Error("Firebase loyihasida Gemini Developer API yoqilmagan (404). Console → AI Logic → Get started → Gemini Developer API → Enable." + tag); err.tryNextProvider = true;
     } else if(info.status === 404 || /models\/[^ ]+ is not found|model.*not found|is not supported for/i.test(m)){
-      kind = "model"; err = new Error("Tanlangan Gemini modeli topilmadi (404): " + (model || "") + ". Sozlamalardan boshqa modelni tanlang." + tag); err.modelNotFound = true; err.tryNextProvider = true;
+      kind = "model"; err = new Error("Tanlangan Maryam modeli topilmadi (404): " + modelDisplayName(model) + ". Sozlamalardan boshqa modelni tanlang." + tag); err.modelNotFound = true; err.tryNextProvider = true;
     } else if(info.status === 401 || info.status === 403 || /PERMISSION_DENIED|API_KEY_SERVICE_BLOCKED|SERVICE_DISABLED|API_NOT_ENABLED|has not been used|is disabled|referer|API key not valid/i.test(m + " " + info.reasons.join(" ") + " " + info.code)){
       kind = "permission";
       let hint = "Firebase Console → AI Logic'da Gemini Developer API yoqilganini tekshiring.";
@@ -4281,18 +4382,18 @@ Mavzu/ko'rsatma: "${topic}"`;
       else if(info.reasons.includes("API_KEY_SERVICE_BLOCKED") || /blocked/i.test(m)) hint = "Google Cloud → APIs & Services → Credentials → Browser key → API restrictions ichiga \"Firebase AI Logic API\" ni qo'shing.";
       else if(info.reasons.includes("SERVICE_DISABLED") || /has not been used|is disabled|api-not-enabled/i.test(m + info.code)) hint = "Google Cloud Console'da \"Firebase AI Logic API\" va \"Generative Language API\" ni Enable qiling.";
       else if(info.reasons.some(r => /REFERER/i.test(r)) || /referer/i.test(m)) hint = "API kalitning \"Website restrictions\" ro'yxatiga riskhaliyev.github.io ni qo'shing.";
-      err = new Error("Gemini ruxsat xatosi (" + (info.status || 403) + "). " + hint + rawHint + tag); err.tryNextProvider = true;
+      err = new Error("Maryam AI ruxsat xatosi (" + (info.status || 403) + "). " + hint + rawHint + tag); err.tryNextProvider = true;
     } else if(info.status === 503 || info.status === 500 || info.status === 502 || info.status === 504 || /overloaded|unavailable|high demand/i.test(m)){
       kind = "busy"; err = new Error("Google serveri hozir band (" + (info.status || 503) + "). Bir necha daqiqadan keyin qayta urinib ko'ring." + tag); err.retryable = true;
     } else if(info.code === "AI/response-error" || /blocked|safety|SAFETY|PROHIBITED/i.test(m) && info.code.indexOf("AI/") === 0){
-      kind = "blocked"; err = new Error("Gemini bu so'rovga javob bermadi (xavfsizlik filtri). So'rovni boshqacha ifodalab ko'ring." + tag);
+      kind = "blocked"; err = new Error("Maryam bu so'rovga javob bermadi (xavfsizlik filtri). So'rovni boshqacha ifodalab ko'ring." + tag);
     } else if((info.isTypeError || info.code === "AI/fetch-error" || /failed to fetch|networkerror|load failed|err_|offline/i.test(m)) && !info.status){
       kind = "network";
-      err = new Error("Haqiqiy tarmoq xatosi: telefon Google Gemini serveriga (firebasevertexai.googleapis.com) yeta olmayapti. Boshqa internet yoki VPN bilan sinab ko'ring; profil oynasidagi \"Gemini diagnostikasi\" aniq sababni ko'rsatadi. [" + (info.code || info.name || "net") + ": " + m.replace(/\s+/g, " ").slice(0, 70) + "]"); err.retryable = true;
+      err = new Error("Haqiqiy tarmoq xatosi: telefon AI serveriga (firebasevertexai.googleapis.com) yeta olmayapti. Boshqa internet yoki VPN bilan sinab ko'ring; profil oynasidagi \"Maryam diagnostikasi\" aniq sababni ko'rsatadi. [" + (info.code || info.name || "net") + ": " + m.replace(/\s+/g, " ").slice(0, 70) + "]"); err.retryable = true;
     } else if(info.code.indexOf("AI/") === 0){
       kind = "sdk"; err = new Error("Firebase AI Logic SDK xatosi: " + m.replace(/\s+/g, " ").slice(0, 140) + tag);
     } else {
-      kind = "other"; err = new Error("Gemini xatosi: " + m.replace(/\s+/g, " ").slice(0, 160) + tag);
+      kind = "other"; err = new Error("Maryam AI xatosi: " + m.replace(/\s+/g, " ").slice(0, 160) + tag);
     }
     err.geminiKind = kind;
     return err;
@@ -4306,7 +4407,7 @@ Mavzu/ko'rsatma: "${topic}"`;
     console.info("[Maryam][Gemini] model =", model);
     console.info("[Maryam][Gemini] authenticated =", authed);
     console.info("[Maryam][Gemini] firebaseAI =", aiOk);
-    if(!authed) throw new Error("Gemini'dan foydalanish uchun Google hisobingiz bilan kiring.");
+    if(!authed) throw new Error("Maryam AI'dan foydalanish uchun Google hisobingiz bilan kiring.");
     if(!fbApi || !aiOk) throw mapGeminiError(Object.assign(new Error("Firebase AI Logic SDK yuklanmadi."), { code: "maryam/no-ai" }), model);
     if(!GEMINI_VALID_MODELS.includes(model)) model = GEMINI_DEFAULT_MODEL;
 
@@ -4358,12 +4459,12 @@ Mavzu/ko'rsatma: "${topic}"`;
     try{
       const t0 = performance.now();
       const txt = await fbApi.geminiPing({ model });
-      pingOk = add("Gemini so'rovi (" + model + ")", true, Math.round(performance.now() - t0) + " ms · javob: " + String(txt).trim().slice(0, 40));
+      pingOk = add("Maryam so'rovi (" + modelDisplayName(model) + ")", true, Math.round(performance.now() - t0) + " ms · javob: " + String(txt).trim().slice(0, 40));
     }catch(e){
       const i = geminiErrorInfo(e);
       logGeminiError(model, i, e);
       const mapped = mapGeminiError(e, model);
-      add("Gemini so'rovi (" + model + ")", false, mapped.message.slice(0, 330) + (i.reasons.length ? " · reasons: " + i.reasons.join(",") : ""));
+      add("Maryam so'rovi (" + modelDisplayName(model) + ")", false, mapped.message.slice(0, 330) + (i.reasons.length ? " · reasons: " + i.reasons.join(",") : ""));
     }
     if(pingOk){
       try{
