@@ -848,6 +848,7 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
   .profile-sync.error{color:var(--danger);}
   .gemini-account-note{font-size:13px; line-height:1.5; color:var(--text-muted); background:var(--accent-soft); border:1px solid var(--accent-soft-strong); border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:12px;}
   .legal-text{font-size:13.5px; line-height:1.6; color:var(--text-muted); margin:0 0 6px;}
+  .provider-select, #providerQuickSelect, .provider-tabs, #providerTabs{display:none !important;}
   .diag-out{font-size:12px; line-height:1.5; max-height:38vh; overflow:auto; border:1px solid var(--border-soft); border-radius:var(--radius-sm); padding:8px 10px; margin-bottom:8px; background:var(--bg-input); -webkit-overflow-scrolling:touch;}
   .diag-row{padding:3px 0; word-break:break-word; color:var(--text-muted);}
   .diag-row.bad{color:var(--danger);}
@@ -899,7 +900,7 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <svg class="logo-mark" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0 L14.2 9.3 L24 12 L14.2 14.7 L12 24 L9.8 14.7 L0 12 L9.8 9.3 Z"/></svg>
-      <span class="brand-name">Maryam<small style="font:600 11px system-ui,sans-serif;opacity:.65;margin-left:7px;letter-spacing:.3px;">v9</small></span>
+      <span class="brand-name">Maryam<small style="font:600 11px system-ui,sans-serif;opacity:.65;margin-left:7px;letter-spacing:.3px;">v11</small></span>
       <button class="sidebar-close" id="sidebarClose" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
       </button>
@@ -1076,8 +1077,8 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
 
 <div class="modal-backdrop" id="settingsModalBackdrop">
   <div class="modal">
-    <h3>AI ulanish sozlamalari</h3>
-    <p class="desc">O'zingizning bepul yoki pullik API kalitingiz bilan ulaning. Kalitlar shu qurilmada eslab qolinadi va faqat brauzeringizdan to'g'ridan-to'g'ri tanlangan provayder serveriga yuboriladi.</p>
+    <h3>Gemini sozlamalari</h3>
+    <p class="desc">Maryam AI Gemini bilan Google hisobingiz orqali ishlaydi. Bu yerda faqat Gemini modelini tanlaysiz.</p>
     <div class="provider-tabs" id="providerTabs"></div>
     <div class="field" id="baseUrlWrap" style="display:none;">
       <label class="field-label">Server manzili</label>
@@ -1252,7 +1253,9 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
       models:[], alwaysCustomModel:true, noKeyRequired:true, customBaseUrl:true, defaultBaseUrl:"http://localhost:11434/v1",
       supportsImage:false, supportsVideo:false, freeNote:"Butunlay offline va cheksiz bepul — avval Ollama'ni kompyuteringizga o'rnatib, model yuklab olishingiz kerak." }
   };
-  const PROVIDER_ORDER = ["gemini","openai","claude","groq","deepseek","openrouter","cerebras","mistral","huggingface","ollama"];
+  // Faqat Gemini yoqilgan. Boshqa providerlar kodda saqlangan, qayta yoqish uchun ro'yxatga ularning nomini qaytaring:
+  // ["gemini","openai","claude","groq","deepseek","openrouter","cerebras","mistral","huggingface","ollama"]
+  const PROVIDER_ORDER = ["gemini"];
   // Gemini Google hisobi + Firebase AI Logic orqali ishlaydi — API kalit so'ralmaydi.
   PROVIDERS.gemini.accountAuth = true;
   PROVIDERS.gemini.helpUrl = "https://firebase.google.com/docs/ai-logic";
@@ -2958,7 +2961,7 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
 
   // Suhbat tarixi (chat.messages) allaqachon tayyor bo'lganda AI javobini so'rab, natijani ekranga chiqaradi.
   // handleSend (yangi xabar) va regenerateLast (qayta generatsiya) shu funksiyani ishlatadi.
-  const FALLBACK_PRIORITY = ["gemini","groq","openrouter","cerebras","deepseek","mistral","openai","claude","huggingface","ollama"];
+  const FALLBACK_PRIORITY = PROVIDER_ORDER.slice();
   function getFallbackProviderOrder(){
     const order = [providerKey];
     FALLBACK_PRIORITY.forEach(p => { if(p !== providerKey && !order.includes(p)) order.push(p); });
@@ -3650,7 +3653,7 @@ Mavzu/ko'rsatma: "${topic}"`;
         apiKeys.gemini = "";
         if(remote.models) models = Object.assign(models, remote.models);
         fixGeminiModel();
-        if(remote.providerKey && PROVIDERS[remote.providerKey]) providerKey = remote.providerKey;
+        if(remote.providerKey && PROVIDER_ORDER.includes(remote.providerKey)) providerKey = remote.providerKey;
         if(remote.providerBaseUrls) providerBaseUrls = Object.assign(providerBaseUrls, remote.providerBaseUrls);
         await kvSet(AI_CONFIG_KEY, JSON.stringify({ apiKeys, models, providerKey, providerBaseUrls }));
         buildProviderQuickSelect();
@@ -4102,7 +4105,7 @@ Mavzu/ko'rsatma: "${topic}"`;
 
   /* ---- Huquqiy havolalar ---- */
   const LEGAL_TEXTS = {
-    privacy: { title: "Maxfiylik siyosati — qisqacha", body: "Google hisobingiz (ism, email, profil rasmi) Firebase Authentication orqali tekshiriladi. Suhbatlar, loyihalar va taqdimotlaringiz Firebase Firestore’da faqat sizning hisobingizga bog‘langan holda saqlanadi va boshqa foydalanuvchilarga ko‘rinmaydi. Gemini so‘rovlari Google serverlariga yuboriladi. Boshqa provayderlar (OpenAI, Groq va h.k.) uchun kiritgan API kalitlaringiz faqat shu qurilmada saqlanadi." },
+    privacy: { title: "Maxfiylik siyosati — qisqacha", body: "Google hisobingiz (ism, email, profil rasmi) Firebase Authentication orqali tekshiriladi. Suhbatlar, loyihalar va taqdimotlaringiz Firebase Firestore’da faqat sizning hisobingizga bog‘langan holda saqlanadi va boshqa foydalanuvchilarga ko‘rinmaydi. Gemini so‘rovlari Google serverlariga yuboriladi. Maryam AI hozir faqat Gemini bilan ishlaydi va hech qanday API kalit talab qilmaydi." },
     terms: { title: "Foydalanish shartlari — qisqacha", body: "Maryam AI yordamchi vosita: javoblar noto‘g‘ri bo‘lishi mumkin, muhim qarorlardan oldin tekshirib ko‘ring. Hisobingiz xavfsizligi uchun o‘zingiz mas’ulsiz. Xizmatdan qonunga xilof maqsadlarda yoki boshqalarga zarar yetkazish uchun foydalanish mumkin emas." }
   };
   function showLegal(kind){
@@ -4274,7 +4277,8 @@ Mavzu/ko'rsatma: "${topic}"`;
     } else if(info.status === 401 || info.status === 403 || /PERMISSION_DENIED|API_KEY_SERVICE_BLOCKED|SERVICE_DISABLED|API_NOT_ENABLED|has not been used|is disabled|referer|API key not valid/i.test(m + " " + info.reasons.join(" ") + " " + info.code)){
       kind = "permission";
       let hint = "Firebase Console → AI Logic'da Gemini Developer API yoqilganini tekshiring.";
-      if(info.reasons.includes("API_KEY_SERVICE_BLOCKED") || /blocked/i.test(m)) hint = "Google Cloud → APIs & Services → Credentials → Browser key → API restrictions ichiga \"Firebase AI Logic API\" ni qo'shing.";
+      if(/template.?only/i.test(m)) hint = "Firebase loyihasida \"Template-only mode\" yoqilgan, u oddiy so'rovlarni bloklaydi. Console → AI Logic → Settings → Template-only mode ni O'CHIRING.";
+      else if(info.reasons.includes("API_KEY_SERVICE_BLOCKED") || /blocked/i.test(m)) hint = "Google Cloud → APIs & Services → Credentials → Browser key → API restrictions ichiga \"Firebase AI Logic API\" ni qo'shing.";
       else if(info.reasons.includes("SERVICE_DISABLED") || /has not been used|is disabled|api-not-enabled/i.test(m + info.code)) hint = "Google Cloud Console'da \"Firebase AI Logic API\" va \"Generative Language API\" ni Enable qiling.";
       else if(info.reasons.some(r => /REFERER/i.test(r)) || /referer/i.test(m)) hint = "API kalitning \"Website restrictions\" ro'yxatiga riskhaliyev.github.io ni qo'shing.";
       err = new Error("Gemini ruxsat xatosi (" + (info.status || 403) + "). " + hint + rawHint + tag); err.tryNextProvider = true;
@@ -4493,7 +4497,7 @@ Mavzu/ko'rsatma: "${topic}"`;
     if((rs.updatedAt || 0) > settingsAt){
       if(rs.models) models = Object.assign(models, rs.models);
       fixGeminiModel();
-      if(rs.providerKey && PROVIDERS[rs.providerKey]) providerKey = rs.providerKey;
+      if(rs.providerKey && PROVIDER_ORDER.includes(rs.providerKey)) providerKey = rs.providerKey;
       if(rs.providerBaseUrls) providerBaseUrls = Object.assign(providerBaseUrls, rs.providerBaseUrls);
       if(rs.theme === "light" || rs.theme === "dark"){ applyTheme(rs.theme); kvSet(THEME_KEY, rs.theme); }
       settingsAt = rs.updatedAt || settingsAt;
@@ -4742,7 +4746,7 @@ Mavzu/ko'rsatma: "${topic}"`;
         if(cfg.apiKeys) apiKeys = Object.assign(apiKeys, cfg.apiKeys);
         if(cfg.models) models = Object.assign(models, cfg.models);
         if(fixGeminiModel()) kvSet(AI_CONFIG_KEY, JSON.stringify({ apiKeys: Object.assign({}, apiKeys, { gemini: "" }), models, providerKey, providerBaseUrls }));
-        if(cfg.providerKey && PROVIDERS[cfg.providerKey]) providerKey = cfg.providerKey;
+        if(cfg.providerKey && PROVIDER_ORDER.includes(cfg.providerKey)) providerKey = cfg.providerKey;
         if(cfg.providerBaseUrls) providerBaseUrls = Object.assign(providerBaseUrls, cfg.providerBaseUrls);
         apiKeys.gemini = "";
       }catch(e){}
