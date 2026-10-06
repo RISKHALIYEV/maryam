@@ -887,6 +887,47 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
   .files-card-actions{flex-basis:100%; display:flex; gap:8px; margin-top:12px;}
   .files-card-actions button{flex:1; min-height:40px; border-radius:12px; border:1px solid var(--border); background:var(--bg-input); color:var(--text); font:600 13px var(--sans); cursor:pointer; touch-action:manipulation;}
   .files-card-actions button:first-child{background:var(--grad); color:#fff; border:none;}
+  /* ============ Motion Artifact ============ */
+  .motion-bar{display:none; gap:8px; padding:0 14px 8px; max-width:760px; margin:0 auto; width:100%;}
+  .motion-bar.open{display:flex;}
+  .motion-bar select{flex:1; min-width:0; min-height:40px; border-radius:12px; border:1px solid var(--border); background:var(--bg-panel); color:var(--text); font:600 12.5px var(--sans); padding:0 8px;}
+  .motion-card{width:min(100%,360px); border:1px solid var(--border); border-radius:20px; background:var(--bg-panel); padding:12px; box-shadow:0 14px 40px rgba(0,0,0,.3);}
+  .mc-top{font:700 12px var(--sans); letter-spacing:.4px; color:var(--accent-hover); margin-bottom:10px;}
+  .mc-stage{position:relative; width:100%; max-height:52vh; border-radius:14px; overflow:hidden; background:#000; cursor:pointer;}
+  .mc-title{font:700 15px var(--sans); margin-top:10px;} .mc-sub{font-size:12.5px; color:var(--text-faint); margin-top:2px;}
+  .mc-actions{display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-top:12px;}
+  .mc-actions button,.ms-btn{min-height:40px; border-radius:11px; border:1px solid var(--border); background:var(--bg-input); color:var(--text); font:600 12.5px var(--sans); cursor:pointer; touch-action:manipulation; padding:0 10px;}
+  .mc-actions button:first-child,.ms-btn.pri{background:var(--grad); color:#fff; border:none;}
+  .ms{position:fixed; inset:0; z-index:1500; background:var(--bg); display:flex; flex-direction:column; color:var(--text); font-family:var(--sans); padding-top:env(safe-area-inset-top,0); padding-bottom:env(safe-area-inset-bottom,0);}
+  .ms-head{display:flex; align-items:center; gap:8px; padding:8px 12px; border-bottom:1px solid var(--border-soft);}
+  .ms-x{width:40px; height:40px; border-radius:12px; border:1px solid var(--border); background:var(--bg-panel); color:var(--text); cursor:pointer;}
+  .ms-ttl{flex:1; min-width:0; font:700 13.5px var(--sans); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .ms-ver{max-width:120px; min-height:40px; border-radius:11px; border:1px solid var(--border); background:var(--bg-panel); color:var(--text); font-size:12px;}
+  .ms-stage{position:relative; flex:1 1 40%; min-height:180px; background:#000; overflow:hidden;}
+  .ms-ctrl{display:flex; align-items:center; gap:8px; padding:8px 12px;}
+  .ms-ico{width:42px; height:42px; border-radius:50%; border:none; background:var(--grad); color:#fff; font-size:16px; cursor:pointer; flex-shrink:0;}
+  .ms-scrub{flex:1; min-width:0; accent-color:var(--accent);} .ms-time{font:600 12px var(--sans); color:var(--text-muted); width:42px; text-align:right;}
+  .ms-speed{min-height:36px; border-radius:10px; border:1px solid var(--border); background:var(--bg-panel); color:var(--text);}
+  .ms-tabs{display:flex; gap:4px; padding:0 12px; border-bottom:1px solid var(--border-soft);}
+  .ms-tabs button{flex:1; min-height:42px; background:none; border:none; border-bottom:2px solid transparent; color:var(--text-muted); font:600 13px var(--sans); cursor:pointer;}
+  .ms-tabs button.on{color:var(--text); border-bottom-color:var(--accent);}
+  .ms-pane{flex:1 1 30%; min-height:110px; overflow:auto; padding:10px 12px; -webkit-overflow-scrolling:touch;}
+  .ms-foot{display:flex; gap:8px; padding:8px 12px; border-top:1px solid var(--border-soft);} .ms-foot .ms-btn{flex:1; min-height:46px;}
+  .ms-info{font-size:13px; line-height:1.55; color:var(--text-muted); padding:6px 2px;} .ms-info span{color:var(--text-faint);}
+  .ms-err{color:var(--danger); font-size:13px; padding:8px; word-break:break-word;}
+  .tl{position:relative; font-size:12px;} .tl-ruler,.tl-row{display:flex; align-items:center; gap:8px; min-height:30px;}
+  .tl-ruler>span,.tl-row>span{width:84px; flex-shrink:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-muted);}
+  .tl-lane{position:relative; flex:1; height:18px; background:var(--bg-input); border-radius:6px;}
+  .tl-ruler .tl-lane{background:none;} .tl-ruler i{position:absolute; top:2px; font-style:normal; color:var(--text-faint); font-size:10px; transform:translateX(-50%);}
+  .tl-lane b{position:absolute; top:3px; bottom:3px; border-radius:5px; background:var(--grad); opacity:.85;} .tl-row.sel>span{color:var(--text); font-weight:700;} .tl-row.sel .tl-lane b{opacity:1; box-shadow:0 0 0 2px var(--accent-soft-strong);}
+  .tl-phw{position:absolute; left:92px; right:0; top:0; bottom:0; pointer-events:none;} .tl-ph{position:absolute; top:0; bottom:0; width:2px; background:var(--danger);}
+  .ly{display:flex; align-items:center; gap:10px; min-height:44px; border-bottom:1px solid var(--border-soft); font-size:14px; cursor:pointer;} .ly.sel{color:var(--accent-hover); font-weight:700;} .ly span{flex:1;} .ly em{font-style:normal; font-size:12px; color:var(--text-faint);}
+  .ly-eye{width:36px; height:36px; border:none; background:none; color:var(--accent-hover); font-size:16px; cursor:pointer;}
+  .cd-tabs{display:flex; gap:6px; margin-bottom:8px; align-items:center;} .cd-tabs span{flex:1;} .cd-tabs button{min-height:36px; padding:0 12px; border-radius:10px; border:1px solid var(--border); background:var(--bg-input); color:var(--text); font:600 12px var(--sans); cursor:pointer;} .cd-tabs button.on{background:var(--accent-soft-strong);}
+  .cd-pre{margin:0; padding:10px; border-radius:12px; background:var(--code-bg); color:var(--code-text); font:12px/1.5 monospace; white-space:pre; overflow:auto; max-height:100%;}
+  .ms-menu{position:absolute; right:12px; bottom:70px; width:min(340px,calc(100% - 24px)); background:var(--bg-panel); border:1px solid var(--border); border-radius:16px; padding:8px; box-shadow:0 20px 60px rgba(0,0,0,.5); z-index:5;}
+  .ms-menu button{display:block; width:100%; min-height:44px; text-align:left; background:none; border:none; color:var(--text); font:600 13px var(--sans); border-radius:10px; padding:0 10px; cursor:pointer;} .ms-menu button:hover{background:var(--accent-soft);} .ms-menu p{margin:6px 10px 4px; font-size:11.5px; color:var(--text-faint); line-height:1.45;}
+  @media (min-width:900px){ .ms{flex-direction:row; flex-wrap:wrap;} .ms-head{width:100%;} .ms-stage{flex:1 1 55%; height:calc(100vh - 120px);} .ms-ctrl,.ms-tabs,.ms-pane,.ms-foot{width:42%;} .ms-pane{flex:1;} }
   .diag-out{font-size:12px; line-height:1.5; max-height:38vh; overflow:auto; border:1px solid var(--border-soft); border-radius:var(--radius-sm); padding:8px 10px; margin-bottom:8px; background:var(--bg-input); -webkit-overflow-scrolling:touch;}
   .diag-row{padding:3px 0; word-break:break-word; color:var(--text-muted);}
   .diag-row.bad{color:var(--danger);}
@@ -1110,6 +1151,11 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
       <div class="composer-wrap">
         <div class="slash-menu" id="slashMenu"></div>
         <div class="attach-list empty-list" id="attachList"></div>
+        <div class="motion-bar" id="motionBar">
+          <select id="mbFormat" aria-label="Format"><option value="auto">Format: avto</option><option value="reel">Instagram Reel 1080×1920</option><option value="post">Instagram Post 1080×1080</option><option value="yt">YouTube 1920×1080</option><option value="short">YouTube Short 1080×1920</option><option value="story">Story 1080×1920</option><option value="pres">Presentation 1920×1080</option></select>
+          <select id="mbStyle" aria-label="Stil"><option value="auto">Stil: avto</option><option>Cinematic</option><option>Minimal</option><option>Luxury</option><option>Modern</option><option>Tech</option><option>Futuristic</option><option>Editorial</option><option>Architectural</option><option>Corporate</option><option>Energetic</option></select>
+          <select id="mbPreset" aria-label="Preset"><option value="auto">Preset: yo'q</option><option>ARCHITECTURE CINEMATIC</option><option>INTERIOR REVEAL</option><option>FLOOR PLAN ANIMATION</option><option>BEFORE / AFTER</option><option>PROJECT PRESENTATION</option><option>LOGO INTRO</option><option>PORTFOLIO REVEAL</option><option>REAL ESTATE PROMO</option><option>MATERIAL SHOWCASE</option><option>LIGHTING REVEAL</option></select>
+        </div>
         <form class="composer" id="composerForm">
           <div class="plus-wrap">
             <button class="attach-btn" id="plusBtn" type="button" title="Qo'shish">
@@ -2683,9 +2729,10 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
       else if(m.type === "error") renderAssistantText(m.text, true, m);
       else if(m.type === "note") renderSystemNote(m.text);
       else if(m.type === "files-card") renderFilesCard(m.names, m.caption);
+      else if(m.type === "motion-card") renderMotionCard(chat, m);
     });
     const last = chat.display[chat.display.length - 1];
-    if(last && ["assistant","error","files-card"].includes(last.type)){
+    if(last && ["assistant","error","files-card","motion-card"].includes(last.type)){
       addRegenerateBar(last.type === "error");
     }
     scrollChatToBottom();
@@ -2960,6 +3007,10 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
       el,
       setTitle(x){ if(t.textContent !== x) t.textContent = x; },
       setStep(x){ if(st.textContent !== x) st.textContent = x; },
+      setSteps(items){
+        stepRow.style.display = "none";
+        filesEl.innerHTML = items.map(i => i.done ? `<div class="work-file done">${CHECK}<span>${esc(i.text)}</span></div>` : `<div class="work-file now"><span class="work-dots"><i></i><i></i><i></i></span><span class="shimmer">${esc(i.text)}</span></div>`).join("");
+      },
       // Fayllar ro'yxati: tayyorlari "✓ nom", yozilayotgani "… Yaratilmoqda: nom"
       setFiles(items){
         stepRow.style.display = "none";
@@ -3005,6 +3056,8 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
     const txt = document.createElement("div"); txt.className = "assistant-text";
     let card = makeWorkCard("Maryam ishlamoqda", `${PROVIDERS[providerKey].label}'ga so'rov yuborildi…`);
     txt.appendChild(card.el);
+    let mLen = 0;
+    if(motionTurn){ card.setTitle("Motion Artifact"); card.setSteps([{ text:"So'rov tahlil qilindi", done:true }, { text:"Kompozitsiya tayyorlanmoqda", done:false }]); }
     row.appendChild(av); row.appendChild(txt);
     messagesInner.appendChild(row);
     scrollChatToBottom();
@@ -3042,6 +3095,13 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
 
     return {
       onDelta(chunk, full){
+        if(motionTurn){
+          // Haqiqiy bosqich: model sahna kodini yozmoqda (belgilar soni real hisoblanadi)
+          if(thinkTimer){ clearInterval(thinkTimer); thinkTimer = null; }
+          mode = "motion"; mLen = full.length;
+          card.setSteps([{ text:"So'rov tahlil qilindi", done:true }, { text:"Kompozitsiya tayyorlandi", done:true }, { text:`Sahna kodi yozilmoqda · ${mLen} belgi`, done:false }]);
+          scrollChatToBottom(); return;
+        }
         if(mode === "waiting"){
           if(/={3}FILE:/.test(full)){ switchToFileMode(); return; }
           stopThinking();
@@ -3077,6 +3137,11 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
         if(full && full.trim()){
           messagesInner.appendChild(createFeedbackBar(full, entry, true));
         }
+      },
+      motionSteps(n){
+        const base = [{ text:"So'rov tahlil qilindi", done:true }, { text:"Kompozitsiya tayyorlandi", done:true }, { text:`Sahna kodi yozildi · ${mLen} belgi`, done:true }];
+        card.setSteps(n >= 5 ? base.concat([{ text:"Preview tekshirildi (render(0) va render(D/2) bajarildi)", done:true }, { text:"Motion Artifact tayyor", done:true }]) : base.concat([{ text:"Preview tekshirilmoqda", done:false }]));
+        scrollChatToBottom();
       },
       finishAsFiles(){
         stopThinking();
@@ -3234,12 +3299,45 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
         if(fx.files.length){ parsedFiles = fx.files; fencedRest = fx.rest; }
       }
 
+      let motionDone = false;
+      if(motionTurn){
+        const mt = motionTurn; motionTurn = null;
+        const mf = parsedFiles.find(f => /motion\.html$/i.test(f.name)) || parsedFiles.find(f => isHtmlFile(f.name));
+        if(mf){
+          live.motionSteps(4);
+          const res = await validateMotion(mf.content, mt.image);
+          if(res.ok){
+            if(!chat.motion) chat.motion = { versions:[], active:0, image:null };
+            if(mt.image) chat.motion.image = mt.image;
+            const n = chat.motion.versions.length + 1;
+            chat.motion.versions.push({ n, html: mf.content, note: (mt.edit ? mt.userText : "Birinchi variant").slice(0, 28), meta: res.meta });
+            chat.motion.active = chat.motion.versions.length - 1;
+            chat.files["motion.html"] = mf.content;
+            if(!chat.fileOrder.includes("motion.html")) chat.fileOrder.push("motion.html");
+            for(let i = chat.messages.length - 1; i >= 0; i--){ if(chat.messages[i].role === "user"){ chat.messages[i].text = mt.userText || "Motion artifact"; break; } }
+            chat.messages.push({ role:"assistant", text:`[Motion artifact v${n} yaratildi: ${res.meta.title || "Motion"}]` });
+            live.motionSteps(5);
+            await new Promise(r => setTimeout(r, 600));
+            live.finishAsFiles();
+            chat.display.push({ type:"motion-card", title: res.meta.title, w: res.meta.width, h: res.meta.height, duration: res.meta.duration });
+            renderMotionCard(chat, null);
+            renderFileTabs(chat);
+            notifyResponseReady(chat, "Motion Artifact tayyor");
+            motionDone = true;
+          } else {
+            renderSystemNote("Motion sahna xatosi: " + res.error + ". Kod fayl sifatida saqlandi — «Qayta yozish» ni bosing.");
+          }
+        }
+      }
+
       if(switched){
         chat.display.push({ type:"note", text:`(${PROVIDERS[usedProvider].label} orqali javob berildi)` });
         renderSystemNote(`(${PROVIDERS[usedProvider].label} orqali javob berildi)`);
       }
 
-      if(parsedFiles.length){
+      if(motionDone){
+        /* motion artifact yaratildi */
+      } else if(parsedFiles.length){
         live.finishAsFiles();
         chat.messages.push({ role:"assistant", text: rawCleaned });
         const names = [];
@@ -3275,6 +3373,7 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
       chat.updatedAt = Date.now();
       addRegenerateBar(false);
     }catch(err){
+      motionTurn = null;
       const msg = "⚠ " + (err.message || "Noma'lum xatolik yuz berdi.");
       live.fail(msg);
       chat.display.push({ type:"error", text: msg });
@@ -3775,6 +3874,7 @@ Mavzu/ko'rsatma: "${topic}"`;
     plusBtn.classList.toggle("active", imageMode || pdfMode || motionMode);
     menuImageBtn.classList.toggle("active", imageMode);
     menuPdfBtn.classList.toggle("active", pdfMode);
+    $("motionBar").classList.toggle("open", motionMode);
     menuMotionBtn.classList.toggle("active", motionMode);
     const imgCheck = menuImageBtn.querySelector(".check");
     if(imgCheck) imgCheck.remove();
@@ -4222,35 +4322,11 @@ Mavzu/ko'rsatma: "${topic}"`;
       pdfMode = false;
       refreshComposerModeUI();
       handlePdfGenerate(text);
-    } else if(motionMode){
-      if(!text) return;
+    } else if(motionMode || shouldMotion(text)){
+      if(!text && !attachments.length) return;
       motionMode = false;
       refreshComposerModeUI();
-      const motionPrompt = `MOTION DIZAYN buyurtmasi: "${text}"
-
-Sen top darajadagi motion-designer va front-end muhandissan. Natija — BITTA to'liq, mustaqil index.html fayl (kerakli CSS va JS ichida; tashqi kutubxona, rasm va CDN YO'Q; shriftlar faqat system-ui/Georgia/monospace). Faylni ===FILE: index.html=== formatida ber, javobda esa faqat 1-2 gap qisqa izoh yoz.
-
-DIZAYN
-- Avval aniq vizual yo'nalish tanla (rang palitra 3-4 rang, bitta aniq kayfiyat) va uni oxirigacha ushla. Umumiy "AI estetikasi"dan (binafsha gradientli bo'sh kartalar) qoch; mavzuga xos, o'ziga xos g'oya qil.
-- To'liq ekran: html,body{height:100%;margin:0;overflow:hidden}, 100dvh, mobil (360px) va desktopda mukammal; o'lchamlar clamp()/vmin bilan, element chetga chiqib ketmasin.
-- Tipografiya: katta, kontrastli, ierarxiyali; matn mavzu tilida (foydalanuvchi o'zbekcha yozgan bo'lsa — o'zbekcha).
-
-HARAKAT (asosiy qism)
-- Bitta bosh TIMELINE (JS: requestAnimationFrame yoki Web Animations API) ustiga qur: sahna → kirish (stagger 60-120ms) → asosiy harakat → chiqish → aylanma (loop) uzluksiz, sakrashsiz tutashsin.
-- Faqat transform va opacity (GPU) animatsiya qil; layout xossalarini (width/top) animatsiya qilma. 60 fps.
-- Easing: cubic-bezier(.22,1,.36,1) (out-expo) kirish uchun, (.65,0,.35,1) o'tish uchun; chiziqli (linear) faqat aylanish va yuklanishda. Davomiylik 400-900ms, umumiy sikl 6-12s.
-- Qatlamlar: fon (sekin parallaks/zarrachalar), o'rta (asosiy obyekt), old (matn). Har qatlam o'z tezligida — chuqurlik hissi.
-- Canvas ishlatsang: devicePixelRatio ga moslab, resize da qayta chiz.
-
-INTERAKTIV (artifact kabi)
-- Pastda kichik, chiroyli boshqaruv paneli: ⏯ pauza/davom, ↻ qayta ijro, tezlik (0.5x/1x/2x). Probel — pauza. Panel 3 soniyadan keyin xira bo'lsin, sichqoncha/tegish bilan qaytsin.
-- Bosish yoki tegishga javob bering (masalan, zarrachalar kursor tomon, yoki obyekt reaksiyasi).
-- prefers-reduced-motion: reduce bo'lsa harakatni minimal (statik kadr + sekin fade).
-
-SIFAT
-- Kod toza, izohlar qisqa, konsolda xato yo'q. Fayl oxirigacha to'liq (qisqartirma).
-- Yaratgandan so'ng ichki tekshiruv: sikl tutashadimi, 360px da matn sig'adimi, pauza ishlaydimi.`;
-      handleSend(text, attachments, { modelText: motionPrompt });
+      startMotionTurn(text, attachments);
     } else {
       handleSend(text, attachments);
     }
@@ -4990,6 +5066,281 @@ SIFAT
     fbApi = boot.api;
     if(boot.redirectError) handleAuthError(boot.redirectError);
     fbApi.onAuthChanged((u) => { onAuthUser(u); });
+  }
+
+  /* =================== MOTION STUDIO (Motion Artifact) =================== */
+  const MOTION_RE = /(motion|animatsiya|animation|intro|reel|jonlantir|kinetik|kinetic|cinematic|kinematik|reklama roliki)/i;
+  const MOTION_SKIP = /\b(css|react|vue|sayt|website|component|komponent|loader|spinner|hover)\b/i;
+  function shouldMotion(text){ return !!text && MOTION_RE.test(text) && !(MOTION_SKIP.test(text) && !/motion|reel|intro/i.test(text)); }
+  let motionTurn = null, motionEditTarget = false;
+  const MOTION_FORMATS = { reel:["1080x1920","Instagram Reel"], post:["1080x1080","Instagram Post"], yt:["1920x1080","YouTube"], short:["1080x1920","YouTube Short"], story:["1080x1920","Story"], pres:["1920x1080","Presentation"] };
+  function motionOpts(){ return { format: $("mbFormat").value, style: $("mbStyle").value, preset: $("mbPreset").value }; }
+  function escH(x){ return String(x).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+  const MOTION_CONTRACT = `TEXNIK SHARTNOMA (majburiy): natija BITTA mustaqil HTML fayl, ===FILE: motion.html=== ... ===ENDFILE=== formatida. Barcha chizish BITTA <canvas id="stage"> da (2D), tashqi kutubxona/rasm/CDN YO'Q (faqat system shriftlar). Sahna DETERMINISTIK bo'lsin: kadr faqat t (soniya) ga bog'liq.
+Fayl ichida shunday e'lon qil:
+window.MOTION = { title:"...", width:W, height:H, duration:D, layers:[{name:"Background",start:0,end:D},{name:"Logo",start:0.4,end:3}, ...], render(t){ /* t soniyadagi to'liq kadrni chiz */ } };
+- canvas.width/height = W/H (aynan format o'lchami). CSS: canvas {width:100%;height:100%;object-fit:contain}, body qora, margin 0.
+- Har layerni chizishdan oldin if(L("Logo")){...} bilan o'ra (L — global funksiya; host layerni yoqadi/o'chiradi). Fayl boshida: window.L = window.L || function(){return true}; window.MOTION_ASSETS = window.MOTION_ASSETS || {};
+- Mustaqil ijro uchun oxirida: if(!window.__MOTION_HOST){ let s=performance.now(); (function f(n){ MOTION.render(((n-s)/1000)%MOTION.duration); requestAnimationFrame(f); })(s); } — setInterval ISHLATMA.
+- Tasodifiy qiymatlar uchun seeded random (mulberry32) — render(t) har chaqirilganda bir xil natija bersin. Zarrachalar sonini cheklash (<=300, faqat canvas), og'ir shadowBlur/filter:blur ni kamdan-kam ishlat. Oxirgi kadr birinchisiga silliq ulansin (loop).
+- Rasm berilgan bo'lsa: const img = window.MOTION_ASSETS.image (dataURL) — new Image() qilib bir marta yukla; yuklanmaguncha render() xato bermasin. Rasmni BUZMA: uni qatlamlarga (osmon/bino/yorug'lik/old plan) kesib, sekin kamera zoom/parallaks bilan jonlantir, matn va zarrachalarni ustiga qo'y.
+MOTION PRINCIPLES: anticipation, overshoot (easeOutBack), follow-through, stagger (60-120ms), easing (out-expo kirish, in-out o'tish), ierarxiya (avval asosiy obyekt, keyin matn, keyin CTA), kinetic typography (harf-harf reveal, clip/mask), kamera harakati (scale+translate), glow/grain/noise, depth (parallaks, soya).
+Javobda faqat bitta fayl bloki va 1 qator izoh yoz.`;
+
+  function buildMotionPrompt(text, o, hasImg){
+    const f = MOTION_FORMATS[o.format];
+    const fmt = f ? `Format: ${f[1]} ${f[0].replace("x"," × ")} (shu o'lcham)` : "Format: so'rovdan aniqla (Instagram Reel bo'lsa 1080×1920, aks holda 1920×1080); davomiylik so'rovda aytilmagan bo'lsa 10 soniya";
+    const arch = o.preset !== "auto" ? `Preset: ${o.preset} — arxitektura/interyer foydalanuvchisi uchun professional uslubda (toza grid, material teksturalari, yorug'lik reveal, nozik yozuvlar).` : "";
+    return `MOTION ARTIFACT buyurtmasi: "${text}"\n${fmt}\nStil: ${o.style === "auto" ? "so'rovga mos tanla" : o.style}. ${arch}\n${hasImg ? "Foydalanuvchi rasm yukladi: avval kompozitsiyani tahlil qil, vizual elementlarni (bino, osmon, chiroqlar, matn, soya, old/orqa reja) tushunib layerlarga ajrat, so'ng jonlantir.\n" : ""}\nSen premium motion-designer'san: cinematic, ko'p qatlamli, ritmik sahna yarat (kamida 6 ta layer).\n${MOTION_CONTRACT}`;
+  }
+  function buildMotionEditPrompt(text, html, o){
+    return `MOTION ARTIFACT TAHRIRI. Foydalanuvchi mavjud sahnani o'zgartirmoqchi: "${text}"\nFaqat shu so'rovga tegishli layer/parametrlarni o'zgartir (tezlik, rang, davomiylik, zarrachalar, format va h.k.), qolganini AYNAN saqla. Davomiylik yoki format o'zgarsa MOTION.duration/width/height va canvas o'lchamini ham yangila. TO'LIQ yangilangan faylni qaytar.\n${MOTION_CONTRACT}\n\nJORIY KOD:\n===CURRENT===\n${html}\n===END-CURRENT===`;
+  }
+
+  function startMotionTurn(text, atts){
+    const chat = getActiveChat(); if(!chat) return;
+    const last = chat.display[chat.display.length - 1];
+    const has = !!(chat.motion && chat.motion.versions.length);
+    const edit = has && (motionEditTarget || (last && last.type === "motion-card" && !/yangi (motion|animatsiya|reel|intro)/i.test(text)));
+    motionEditTarget = false; promptInput.placeholder = "Nima yasashimni yoki nima haqida gaplashishni xohlaysiz?";
+    const img = atts.find(a => a.isImage);
+    const o = motionOpts();
+    motionTurn = { edit, userText: text, image: img ? `data:${img.mimeType};base64,${img.dataBase64}` : (edit ? chat.motion.image : null) };
+    const cur = has ? chat.motion.versions[chat.motion.active].html : "";
+    handleSend(text || "Motion artifact", atts, { modelText: edit ? buildMotionEditPrompt(text, cur, o) : buildMotionPrompt(text, o, !!img) });
+  }
+
+  /* ---- Sahna: iframe + ko'prik (bridge) ---- */
+  function motionBridge(){
+    var M, t = 0, playing = true, speed = 1, last = 0, lastPost = 0, rec = null;
+    function post(m){ m.motion = 1; parent.postMessage(m, "*"); }
+    window.addEventListener("error", function(e){ post({ type:"error", msg:String(e.message || e) }); });
+    function draw(){
+      try{ M.render(t); }catch(e){ post({ type:"error", msg:String(e && e.message || e) }); playing = false; }
+      var n = performance.now(); if(n - lastPost > 50){ lastPost = n; post({ type:"time", t:t }); }
+    }
+    function frame(now){
+      var dt = Math.min(0.1, (now - last) / 1000); last = now;
+      if(playing){
+        t += dt * speed;
+        if(t >= M.duration){
+          if(rec){ t = M.duration; draw(); playing = false; rec.stop(); }
+          else t = t % M.duration;
+        }
+        if(playing) draw();
+      }
+      requestAnimationFrame(frame);
+    }
+    function record(){
+      var c = document.querySelector("canvas");
+      if(!c || !c.captureStream || !window.MediaRecorder){ post({ type:"recorded", error:"Bu brauzer video yozishni qo'llamaydi" }); return; }
+      var types = ["video/mp4;codecs=avc1", "video/webm;codecs=vp9", "video/webm"], mt = "";
+      for(var i = 0; i < types.length; i++){ if(MediaRecorder.isTypeSupported(types[i])){ mt = types[i]; break; } }
+      var chunks = [];
+      rec = new MediaRecorder(c.captureStream(30), mt ? { mimeType:mt, videoBitsPerSecond:8000000 } : {});
+      rec.ondataavailable = function(e){ if(e.data.size) chunks.push(e.data); };
+      rec.onstop = function(){ var type = (rec && rec.mimeType) || mt || "video/webm"; post({ type:"recorded", blob:new Blob(chunks, { type:type }), mime:type }); rec = null; playing = true; };
+      t = 0; speed = 1; playing = true; rec.start();
+    }
+    window.addEventListener("message", function(e){
+      var d = e.data; if(!d || !d.motionCmd || !M) return;
+      if(d.motionCmd === "play") playing = true;
+      else if(d.motionCmd === "pause") playing = false;
+      else if(d.motionCmd === "seek"){ t = Math.max(0, Math.min(M.duration, d.t)); draw(); }
+      else if(d.motionCmd === "replay"){ t = 0; playing = true; }
+      else if(d.motionCmd === "speed") speed = d.v;
+      else if(d.motionCmd === "layer"){ window.MOTION_HIDDEN[d.name] = !d.visible; draw(); }
+      else if(d.motionCmd === "record") record();
+    });
+    function start(){
+      M = window.MOTION;
+      if(!M || typeof M.render !== "function" || !(M.duration > 0)){ post({ type:"error", msg:"window.MOTION (duration, render) topilmadi" }); return; }
+      try{ M.render(0); M.render(M.duration / 2); M.render(0); }catch(e){ post({ type:"error", msg:String(e && e.message || e) }); return; }
+      post({ type:"ready", meta:{ title:M.title, width:M.width, height:M.height, duration:M.duration, layers:M.layers || [] } });
+      last = performance.now(); requestAnimationFrame(frame);
+    }
+    if(document.readyState === "complete") start(); else window.addEventListener("load", start);
+  }
+  function motionDoc(html, image){
+    const pre = "<script>window.__MOTION_HOST=1;window.MOTION_HIDDEN={};window.L=function(n){return !window.MOTION_HIDDEN[n]};window.MOTION_ASSETS=" + JSON.stringify(image ? { image } : {}).replace(/</g, "\\u003c") + ";<" + "/script>";
+    const post = "<script>(" + motionBridge.toString() + ")()<" + "/script>";
+    html = /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, m => m + pre) : pre + html;
+    return /<\/body>/i.test(html) ? html.replace(/<\/body>/i, post + "</body>") : html + post;
+  }
+  // Sahnani iframe'ga o'rnatadi; boshqaruv: cmd(...), on(handler)
+  function mountScene(box, html, image, opts){
+    opts = opts || {};
+    const fr = document.createElement("iframe");
+    fr.setAttribute("sandbox", "allow-scripts"); fr.setAttribute("title", "Motion preview");
+    fr.style.cssText = "border:0;background:#000;position:absolute;left:0;top:0;transform-origin:0 0;";
+    const ctl = { frame: fr, meta: null, handlers: [], ready: false };
+    const onMsg = (e) => {
+      if(e.source !== fr.contentWindow || !e.data || !e.data.motion) return;
+      if(e.data.type === "ready"){ ctl.meta = e.data.meta; ctl.ready = true; fit(); }
+      ctl.handlers.forEach(h => h(e.data));
+    };
+    window.addEventListener("message", onMsg);
+    const fit = () => {
+      if(!ctl.meta) return;
+      const w = ctl.meta.width, h = ctl.meta.height, bw = box.clientWidth, bh = box.clientHeight;
+      if(!bw || !bh) return;
+      const sc = Math.min(bw / w, bh / h);
+      fr.style.width = w + "px"; fr.style.height = h + "px";
+      fr.style.transform = `translate(${(bw - w * sc) / 2}px,${(bh - h * sc) / 2}px) scale(${sc})`;
+    };
+    const ro = new ResizeObserver(fit); ro.observe(box);
+    ctl.cmd = (c, extra) => { try{ fr.contentWindow.postMessage(Object.assign({ motionCmd: c }, extra || {}), "*"); }catch(e){} };
+    ctl.on = (h) => ctl.handlers.push(h);
+    ctl.destroy = () => { window.removeEventListener("message", onMsg); ro.disconnect(); fr.remove(); };
+    fr.srcdoc = motionDoc(html, image);
+    box.appendChild(fr);
+    return ctl;
+  }
+  // Haqiqiy tekshiruv: yashirin iframe'da sahna yuklanadi va render(0), render(D/2) chaqiriladi.
+  function validateMotion(html, image){
+    return new Promise((resolve) => {
+      const box = document.createElement("div"); box.style.cssText = "position:fixed;left:-9999px;top:0;width:200px;height:200px;";
+      document.body.appendChild(box);
+      const ctl = mountScene(box, html, image);
+      const done = (r) => { clearTimeout(tm); ctl.destroy(); box.remove(); resolve(r); };
+      const tm = setTimeout(() => done({ ok:false, error:"Sahna 8 soniyada yuklanmadi" }), 8000);
+      ctl.on((m) => { if(m.type === "ready") done({ ok:true, meta:m.meta }); else if(m.type === "error") done({ ok:false, error:m.msg }); });
+    });
+  }
+
+  /* ---- Artifact card (chatda) ---- */
+  function motionActive(chat){ return chat.motion && chat.motion.versions[chat.motion.active]; }
+  function renderMotionCard(chat, entry){
+    const v = motionActive(chat) || (chat.files["motion.html"] ? { html: chat.files["motion.html"], meta: null, n: 1 } : null);
+    if(!v) return;
+    const meta = v.meta || entry || {};
+    const row = document.createElement("div"); row.className = "assistant-block";
+    const av = document.createElement("div"); av.className = "avatar"; av.innerHTML = assistantAvatarSvg();
+    const card = document.createElement("div"); card.className = "motion-card";
+    const w = meta.width || meta.w || 1080, h = meta.height || meta.h || 1920;
+    card.innerHTML = `<div class="mc-top">✦ Motion Artifact</div><div class="mc-stage" style="aspect-ratio:${w}/${h}"></div>` +
+      `<div class="mc-title">${escH(meta.title || "Motion")}</div><div class="mc-sub">${w} × ${h} · ${meta.duration ? Math.round(meta.duration * 10) / 10 + " soniya" : ""} · v${v.n || 1}</div>` +
+      `<div class="mc-actions"><button data-a="open">Ochish</button><button data-a="edit">Tahrirlash</button><button data-a="code">Kod</button><button data-a="export">Eksport</button></div>`;
+    const stage = card.querySelector(".mc-stage");
+    row.appendChild(av); row.appendChild(card); messagesInner.appendChild(row);
+    if(v.meta || true){
+      const ctl = mountScene(stage, v.html, chat.motion && chat.motion.image);
+      const io = new IntersectionObserver((es) => es.forEach(e => ctl.cmd(e.isIntersecting ? "play" : "pause")), { threshold: .2 });
+      io.observe(stage);
+    }
+    card.addEventListener("click", (e) => {
+      const b = e.target.closest("button[data-a]");
+      if(!b){ if(e.target.closest(".mc-stage")) openMotionStudio(chat.id, "preview"); return; }
+      if(b.dataset.a === "edit") beginMotionEdit(chat.id, ""); else openMotionStudio(chat.id, b.dataset.a === "code" ? "code" : "preview", b.dataset.a === "export");
+    });
+    scrollChatToBottom();
+  }
+  function beginMotionEdit(chatId, prefix){
+    closeMotionStudio();
+    motionEditTarget = true; promptInput.value = prefix || ""; promptInput.placeholder = "Nimani o'zgartiray? Masalan: logo tezroq chiqsin";
+    promptInput.focus();
+  }
+
+  /* ---- Studio ---- */
+  let studio = null;
+  function closeMotionStudio(){ if(studio){ studio.ctl.destroy(); studio.el.remove(); studio = null; } }
+  function dl(name, data, type){ const b = data instanceof Blob ? data : new Blob([data], { type: type || "text/plain" }); const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); }
+  function splitCode(html){
+    const css = [], js = [];
+    let rest = html.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (m, c) => { css.push(c.trim()); return "<!-- style -->"; });
+    rest = rest.replace(/<script[^>]*>([\s\S]*?)<\/script>/gi, (m, c) => { js.push(c.trim()); return "<!-- script -->"; });
+    return { HTML: rest.trim(), CSS: css.join("\n\n") || "/* CSS yo'q */", JS: js.join("\n\n") || "// JS yo'q" };
+  }
+  function openMotionStudio(chatId, tab, openExport){
+    closeMotionStudio();
+    const chat = chats.find(c => c.id === chatId); if(!chat) return;
+    if(!chat.motion){ chat.motion = { versions:[{ n:1, html: chat.files["motion.html"] || "", note:"Asl nusxa", meta:null }], active:0, image:null }; }
+    const M = chat.motion;
+    const el = document.createElement("div"); el.className = "ms"; 
+    el.innerHTML = `<div class="ms-head"><button class="ms-x" data-a="close" aria-label="Yopish">✕</button><div class="ms-ttl"></div><select class="ms-ver" aria-label="Versiya"></select><button class="ms-btn" data-a="restore">Qayta tiklash</button></div>` +
+      `<div class="ms-stage"></div>` +
+      `<div class="ms-ctrl"><button data-a="play" class="ms-ico" aria-label="Play/Pause">⏸</button><button data-a="replay" class="ms-ico" aria-label="Replay">↻</button><input class="ms-scrub" type="range" min="0" max="1000" value="0" aria-label="Timeline"><span class="ms-time">0.0s</span><select class="ms-speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select></div>` +
+      `<div class="ms-tabs"><button data-t="preview">Preview</button><button data-t="timeline">Timeline</button><button data-t="layers">Layers</button><button data-t="code">Code</button></div>` +
+      `<div class="ms-pane"></div>` +
+      `<div class="ms-foot"><button class="ms-btn" data-a="edit">Tahrirlash</button><button class="ms-btn pri" data-a="export">Eksport ▾</button></div>`;
+    document.body.appendChild(el);
+    const $q = (s) => el.querySelector(s);
+    const st = { el, chat, M, tab: tab || "preview", ctl: null, sel: null, hidden: {}, playing: true, t: 0, codeTab: "HTML" };
+    studio = st;
+    const verSel = $q(".ms-ver"), pane = $q(".ms-pane"), stage = $q(".ms-stage"), scrub = $q(".ms-scrub"), timeEl = $q(".ms-time"), playBtn = $q('[data-a="play"]');
+    verSel.innerHTML = M.versions.map((v, i) => `<option value="${i}">v${v.n} — ${escH(v.note || "")}</option>`).join(""); verSel.value = M.active;
+    function load(){
+      if(st.ctl) st.ctl.destroy();
+      const v = M.versions[M.active];
+      st.ctl = mountScene(stage, v.html, M.image);
+      st.ctl.on((m) => {
+        if(m.type === "ready"){ v.meta = m.meta; $q(".ms-ttl").textContent = (m.meta.title || "Motion") + " · " + m.meta.width + "×" + m.meta.height + " · " + m.meta.duration + "s"; draw(); }
+        else if(m.type === "time"){ st.t = m.t; const d = v.meta ? v.meta.duration : 1; scrub.value = Math.round(m.t / d * 1000); timeEl.textContent = m.t.toFixed(1) + "s"; const ph = pane.querySelector(".tl-ph"); if(ph) ph.style.left = (m.t / d * 100) + "%"; }
+        else if(m.type === "error"){ pane.innerHTML = `<div class="ms-err">Sahna xatosi: ${escH(m.msg)}</div>`; }
+        else if(m.type === "recorded"){ recDone(m); }
+      });
+      Object.keys(st.hidden).forEach(n => st.ctl.on(() => {}));
+    }
+    function draw(){
+      const v = M.versions[M.active], meta = v.meta, D = meta ? meta.duration : 10;
+      if(st.tab === "preview"){ pane.innerHTML = `<div class="ms-info"><b>${escH(meta ? meta.title : "")}</b><br>${meta ? meta.layers.length + " ta layer" : ""} · ${D}s · ${meta ? meta.width + "×" + meta.height : ""}<br><span>Versiya ${v.n} / ${M.versions.length}. O'zgartirish uchun «Tahrirlash» ni bosing va oddiy tilda yozing.</span></div>`; }
+      else if(st.tab === "timeline"){
+        const step = D > 12 ? 5 : 2; let ticks = ""; for(let s = 0; s <= D; s += step) ticks += `<i style="left:${s / D * 100}%">${s}</i>`;
+        const bars = (meta ? meta.layers : []).map(l => `<div class="tl-row${st.sel === l.name ? " sel" : ""}" data-l="${escH(l.name)}"><span>${escH(l.name)}</span><div class="tl-lane"><b style="left:${l.start / D * 100}%;width:${Math.max(1, (l.end - l.start) / D * 100)}%"></b></div></div>`).join("");
+        pane.innerHTML = `<div class="tl"><div class="tl-ruler"><span></span><div class="tl-lane">${ticks}</div></div>${bars}<div class="tl-phw"><div class="tl-ph" style="left:${st.t / D * 100}%"></div></div></div>`;
+      } else if(st.tab === "layers"){
+        pane.innerHTML = (meta ? meta.layers : []).map(l => `<div class="ly${st.sel === l.name ? " sel" : ""}" data-l="${escH(l.name)}"><button class="ly-eye" data-eye="${escH(l.name)}">${st.hidden[l.name] ? "○" : "●"}</button><span>${escH(l.name)}</span><em>${l.start.toFixed ? l.start.toFixed(1) : l.start}–${l.end.toFixed ? l.end.toFixed(1) : l.end}s</em></div>`).join("") + `<div class="ms-info"><span>Layerni tanlang va «Tahrirlash» ni bosing — o'zgartirish aynan shu layerga qaratiladi.</span></div>`;
+      } else if(st.tab === "code"){
+        const parts = splitCode(v.html);
+        pane.innerHTML = `<div class="cd-tabs">${["HTML", "CSS", "JS"].map(k => `<button data-c="${k}" class="${st.codeTab === k ? "on" : ""}">${k}</button>`).join("")}<span></span><button data-cc="copy">Nusxa</button><button data-cc="dl">Yuklab olish</button></div><pre class="cd-pre"></pre>`;
+        pane.querySelector(".cd-pre").textContent = parts[st.codeTab];
+      }
+      el.querySelectorAll(".ms-tabs button").forEach(b => b.classList.toggle("on", b.dataset.t === st.tab));
+    }
+    let recBtn = null;
+    function recDone(m){
+      if(recBtn){ recBtn.disabled = false; recBtn.textContent = "Video"; }
+      if(m.error){ alert(m.error); return; }
+      const ext = /mp4/.test(m.mime) ? "mp4" : "webm";
+      dl(((M.versions[M.active].meta || {}).title || "motion").replace(/[^\w-]+/g, "_") + "." + ext, m.blob);
+    }
+    function exportMenu(){
+      const old = el.querySelector(".ms-menu"); if(old){ old.remove(); return; }
+      const mt = window.MediaRecorder && MediaRecorder.isTypeSupported("video/mp4;codecs=avc1") ? "MP4" : "WebM";
+      const mn = document.createElement("div"); mn.className = "ms-menu";
+      mn.innerHTML = `<button data-x="html">HTML (sahifa)</button><button data-x="video">Video — ${mt} (real vaqtda yoziladi)</button><button data-x="project">Loyiha (JSON, barcha versiyalar)</button><p>GIF va MP4 brauzer ichida sifatli render qilinmaydi: video ${mt} formatida beriladi, GIF uchun WebM'ni konverter orqali o'tkazing.</p>`;
+      el.appendChild(mn);
+      mn.addEventListener("click", (e) => {
+        const b = e.target.closest("button[data-x]"); if(!b) return;
+        const v = M.versions[M.active], name = ((v.meta || {}).title || "motion").replace(/[^\w-]+/g, "_");
+        if(b.dataset.x === "html") dl(name + ".html", v.html, "text/html");
+        else if(b.dataset.x === "project") dl(name + "-project.json", JSON.stringify({ app:"Maryam Motion", versions:M.versions.map(x => ({ n:x.n, note:x.note, html:x.html })), active:M.active }, null, 1), "application/json");
+        else { recBtn = b; b.disabled = true; b.textContent = "Yozilmoqda… (" + Math.round((v.meta || {}).duration || 10) + " soniya)"; st.ctl.cmd("record"); return; }
+        mn.remove();
+      });
+    }
+    el.addEventListener("click", (e) => {
+      const b = e.target.closest("button,.tl-row,.ly");
+      if(!b) return;
+      const a = b.dataset.a;
+      if(a === "close") closeMotionStudio();
+      else if(a === "play"){ st.playing = !st.playing; st.ctl.cmd(st.playing ? "play" : "pause"); playBtn.textContent = st.playing ? "⏸" : "▶"; }
+      else if(a === "replay"){ st.playing = true; playBtn.textContent = "⏸"; st.ctl.cmd("replay"); }
+      else if(a === "restore"){ const i = Number(verSel.value); if(i !== M.active || true){ M.active = i; chat.files["motion.html"] = M.versions[i].html; saveChatsState(); load(); draw(); } }
+      else if(a === "edit") beginMotionEdit(chat.id, st.sel ? "«" + st.sel + "» layeri: " : "");
+      else if(a === "export") exportMenu();
+      else if(b.dataset.t){ st.tab = b.dataset.t; draw(); }
+      else if(b.dataset.c){ st.codeTab = b.dataset.c; draw(); }
+      else if(b.dataset.cc){ const txt = splitCode(M.versions[M.active].html)[st.codeTab]; if(b.dataset.cc === "copy") navigator.clipboard.writeText(txt).then(() => { b.textContent = "Nusxalandi ✓"; }); else dl("motion." + ({ HTML:"html", CSS:"css", JS:"js" })[st.codeTab], txt); }
+      else if(b.dataset.eye){ const n = b.dataset.eye; st.hidden[n] = !st.hidden[n]; st.ctl.cmd("layer", { name:n, visible:!st.hidden[n] }); draw(); }
+      else if(b.dataset.l){ st.sel = st.sel === b.dataset.l ? null : b.dataset.l; draw(); }
+    });
+    scrub.addEventListener("input", () => { const d = (M.versions[M.active].meta || {}).duration || 1; st.ctl.cmd("pause"); st.ctl.cmd("seek", { t: scrub.value / 1000 * d }); st.playing = false; playBtn.textContent = "▶"; });
+    $q(".ms-speed").addEventListener("change", (e) => st.ctl.cmd("speed", { v: Number(e.target.value) }));
+    verSel.addEventListener("change", () => {});
+    load(); draw();
+    if(openExport) setTimeout(exportMenu, 100);
   }
 
   /* =================== INIT =================== */
