@@ -874,6 +874,10 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
   @keyframes workShimmer{0%{background-position:130% 0;} 100%{background-position:-110% 0;}}
   @media (prefers-reduced-motion:reduce){ .work-dots i,.shimmer{animation:none !important;} .shimmer{-webkit-text-fill-color:currentColor; color:var(--text-muted); background:none;} }
 
+  .assistant-text{min-width:0; max-width:100%;}
+  .assistant-text .md-codeblock{max-width:100%; border-radius:14px; margin:10px 0;}
+  .assistant-text .md-codeblock pre{white-space:pre; line-height:1.55; font-size:12px; -webkit-overflow-scrolling:touch;}
+  .assistant-text .md-codeblock code{display:block; line-height:1.55; white-space:pre;}
   .diag-out{font-size:12px; line-height:1.5; max-height:38vh; overflow:auto; border:1px solid var(--border-soft); border-radius:var(--radius-sm); padding:8px 10px; margin-bottom:8px; background:var(--bg-input); -webkit-overflow-scrolling:touch;}
   .diag-row{padding:3px 0; word-break:break-word; color:var(--text-muted);}
   .diag-row.bad{color:var(--danger);}
@@ -2982,8 +2986,25 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
           mode = "text";
           txt.innerHTML = "";
         }
-        if(mode === "text"){
-          txt.innerHTML = renderMarkdownLite(displaySafeText(full)) + '<span class="type-cursor"></span>';
+        if(mode === "text" || mode === "code"){
+          // Tugallanmagan kod bloki (```) xom matn bo'lib to'kilmasin: kichik bo'lsa jonli blok, katta bo'lsa "Kod yozilmoqda" kartasi.
+          const open = ((full.match(/```/g) || []).length % 2) === 1;
+          const cut = open ? full.lastIndexOf("```") : -1;
+          const codeLines = open ? full.slice(cut).split("\n").length : 0;
+          if(open && codeLines > 25){
+            if(mode !== "code"){
+              mode = "code"; txt.innerHTML = "";
+              card = makeWorkCard("Kod yozilmoqda", "");
+              txt.appendChild(card.el);
+            }
+            const lang = (full.slice(cut + 3).match(/^[a-zA-Z0-9+#-]*/) || [""])[0];
+            card.setStep(`Yozilmoqda: ${lang || "kod"} · ${codeLines} qator`);
+            scrollChatToBottom();
+            return;
+          }
+          if(mode === "code"){ mode = "text"; if(card) card.stop(); }
+          const shown = open ? full + "\n```" : full;
+          txt.innerHTML = renderMarkdownLite(displaySafeText(shown)) + '<span class="type-cursor"></span>';
           scrollChatToBottom();
         } else if(mode === "file"){
           if(row._advanceFileStage) row._advanceFileStage(full);
