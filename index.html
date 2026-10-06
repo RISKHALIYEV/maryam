@@ -878,6 +878,15 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
   .assistant-text .md-codeblock{max-width:100%; border-radius:14px; margin:10px 0;}
   .assistant-text .md-codeblock pre{white-space:pre; line-height:1.55; font-size:12px; -webkit-overflow-scrolling:touch;}
   .assistant-text .md-codeblock code{display:block; line-height:1.55; white-space:pre;}
+  .work-files{display:flex; flex-direction:column; gap:9px; padding-left:2px;}
+  .work-file{display:flex; align-items:center; gap:10px; font-size:15px; color:var(--text-muted); min-width:0;}
+  .work-file span:last-child{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;}
+  .work-file.done{color:var(--text);}
+  .work-check{width:16px; height:16px; color:var(--ok); flex-shrink:0;}
+  .files-card{flex-wrap:wrap;}
+  .files-card-actions{flex-basis:100%; display:flex; gap:8px; margin-top:12px;}
+  .files-card-actions button{flex:1; min-height:40px; border-radius:12px; border:1px solid var(--border); background:var(--bg-input); color:var(--text); font:600 13px var(--sans); cursor:pointer; touch-action:manipulation;}
+  .files-card-actions button:first-child{background:var(--grad); color:#fff; border:none;}
   .diag-out{font-size:12px; line-height:1.5; max-height:38vh; overflow:auto; border:1px solid var(--border-soft); border-radius:var(--radius-sm); padding:8px 10px; margin-bottom:8px; background:var(--bg-input); -webkit-overflow-scrolling:touch;}
   .diag-row{padding:3px 0; word-break:break-word; color:var(--text-muted);}
   .diag-row.bad{color:var(--danger);}
@@ -2625,6 +2634,22 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
     const list = names.length > 1 ? `<div class="files-card-list">${names.join(" · ")}</div>` : "";
     card.innerHTML = `<div class="files-card-icon">${fileIconSvg(names[0])}</div><div><div class="files-card-title">${title}</div><div class="files-card-sub">${caption || "Ko'rish uchun bosing"}</div>${list}</div>`;
     card.addEventListener("click", () => openCanvas());
+    const actions = document.createElement("div"); actions.className = "files-card-actions";
+    actions.innerHTML = '<button type="button" data-a="open">Ochish</button><button type="button" data-a="copy">Nusxa</button><button type="button" data-a="dl">Yuklab olish</button>';
+    actions.addEventListener("click", async (e) => {
+      const btn = e.target.closest("button[data-a]"); if(!btn) return;
+      e.stopPropagation();
+      const chat = getActiveChat(); if(!chat) return;
+      const main = names.find(isHtmlFile) || names[0];
+      if(btn.dataset.a === "open"){ chat.activeFile = main; renderFileTabs(chat); loadFileIntoEditor(chat); openCanvas(); }
+      else if(btn.dataset.a === "copy"){
+        const txt = names.length > 1 ? names.map(n => "/* " + n + " */\n" + (chat.files[n] || "")).join("\n\n") : (chat.files[main] || "");
+        try{ await navigator.clipboard.writeText(txt); const o = btn.textContent; btn.textContent = "Nusxalandi ✓"; setTimeout(() => btn.textContent = o, 1600); }catch(err){ btn.textContent = "Nusxalab bo'lmadi"; }
+      } else if(btn.dataset.a === "dl"){
+        names.forEach((n, i) => setTimeout(() => downloadBlob(n, chat.files[n] || "", isBinaryName(n)), i * 350));
+      }
+    });
+    card.appendChild(actions);
     row.appendChild(av); row.appendChild(card);
     messagesInner.appendChild(row);
   }
@@ -2921,8 +2946,11 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
     const el = document.createElement("div"); el.className = "work-card";
     el.innerHTML = `<div class="work-head">${WORK_CLOCK}<span class="work-title"></span>${WORK_CHEV}</div>` +
       `<div class="work-step"><span class="work-dots"><i></i><i></i><i></i></span><span class="work-step-text shimmer"></span>${WORK_CHEV}</div>` +
-      `<div class="work-still"></div>`;
+      `<div class="work-files"></div><div class="work-still"></div>`;
     const t = el.querySelector(".work-title"), st = el.querySelector(".work-step-text"), still = el.querySelector(".work-still");
+    const stepRow = el.querySelector(".work-step"), filesEl = el.querySelector(".work-files");
+    const esc = (x) => String(x).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+    const CHECK = '<svg class="work-ico work-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
     t.textContent = titleText; st.textContent = stepText;
     const timers = [
       setTimeout(() => { still.textContent = "Hali ishlayapman…"; still.classList.add("show"); }, 9000),
@@ -2932,8 +2960,42 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
       el,
       setTitle(x){ if(t.textContent !== x) t.textContent = x; },
       setStep(x){ if(st.textContent !== x) st.textContent = x; },
+      // Fayllar ro'yxati: tayyorlari "✓ nom", yozilayotgani "… Yaratilmoqda: nom"
+      setFiles(items){
+        stepRow.style.display = "none";
+        const busy = items.some(i => !i.done);
+        t.textContent = busy ? (items.length > 1 ? `Fayllar yaratilmoqda (${items.length})` : "Fayl yaratilmoqda") : (items.length > 1 ? `${items.length} ta fayl tayyor` : "Fayl tayyor");
+        filesEl.innerHTML = items.map(i => i.done
+          ? `<div class="work-file done">${CHECK}<span>${esc(i.name)}</span></div>`
+          : `<div class="work-file now"><span class="work-dots"><i></i><i></i><i></i></span><span class="shimmer">Yaratilmoqda: ${esc(i.name)}</span></div>`).join("");
+      },
       stop(){ timers.forEach(clearTimeout); }
     };
+  }
+
+  // ```kod``` bloklarini fayl sifatida aniqlash (til bo'yicha nom beriladi). Streaming va yakuniy bosqich bir xil natija beradi.
+  const FENCE_FILE_NAMES = { html:"index.html", htm:"index.html", css:"styles.css", js:"app.js", javascript:"app.js", mjs:"app.js", ts:"app.ts", typescript:"app.ts", jsx:"App.jsx", tsx:"App.tsx", json:"data.json", py:"main.py", python:"main.py", svg:"image.svg", xml:"data.xml", php:"index.php", java:"Main.java", c:"main.c", cpp:"main.cpp", "c++":"main.cpp", go:"main.go", rs:"main.rs", rust:"main.rs", sh:"script.sh", bash:"script.sh", sql:"query.sql", yaml:"config.yml", yml:"config.yml", md:"README.md", markdown:"README.md", vue:"App.vue", kt:"Main.kt", kotlin:"Main.kt", swift:"main.swift", dart:"main.dart", rb:"main.rb", ruby:"main.rb" };
+  const FENCE_MIN_LINES = 5;
+  function fencedItems(text){
+    const re = /```([\w+#.-]*)[^\n]*\n([\s\S]*?)(```|$)/g;
+    const out = [], used = {}; let m;
+    while((m = re.exec(text)) !== null){
+      const lang = (m[1] || "").toLowerCase();
+      const base = FENCE_FILE_NAMES[lang];
+      const lines = m[2].replace(/\n+$/, "").split("\n").length;
+      if(m[0].length === 0) { re.lastIndex++; continue; }
+      if(!base || lines < FENCE_MIN_LINES) continue;
+      let name = base;
+      if(used[base]){ const k = ++used[base]; const dot = base.lastIndexOf("."); name = base.slice(0, dot) + "-" + k + base.slice(dot); } else used[base] = 1;
+      out.push({ name, done: m[3] === "```", content: m[2].replace(/\n+$/, ""), start: m.index, end: m.index + m[0].length });
+    }
+    return out;
+  }
+  function fencedToFiles(text){
+    const items = fencedItems(text).filter(i => i.done || true);
+    let rest = text;
+    for(let k = items.length - 1; k >= 0; k--) rest = rest.slice(0, items[k].start) + rest.slice(items[k].end);
+    return { files: items.map(i => ({ name: i.name, content: i.content })), rest: rest.replace(/\n{3,}/g, "\n\n").trim() };
   }
 
   function createLiveRow(userText){
@@ -2973,8 +3035,8 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
       row._advanceFileStage = (full) => {
         const names = [...(full || "").matchAll(/={3}FILE:\s*([^\n=]+?)\s*={3}/g)].map(m => m[1]);
         if(!names.length) return;
-        card.setTitle(names.length > 1 ? `Fayllar yaratilmoqda (${names.length})` : "Fayl yaratilmoqda");
-        card.setStep(`Yaratilmoqda: ${names[names.length - 1]}`);
+        const doneCount = ((full || "").match(/===ENDFILE===/g) || []).length;
+        card.setFiles(names.map((n, i) => ({ name: n, done: i < doneCount })));
       };
     }
 
@@ -2987,21 +3049,19 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
           txt.innerHTML = "";
         }
         if(mode === "text" || mode === "code"){
-          // Tugallanmagan kod bloki (```) xom matn bo'lib to'kilmasin: kichik bo'lsa jonli blok, katta bo'lsa "Kod yozilmoqda" kartasi.
-          const open = ((full.match(/```/g) || []).length % 2) === 1;
-          const cut = open ? full.lastIndexOf("```") : -1;
-          const codeLines = open ? full.slice(cut).split("\n").length : 0;
-          if(open && codeLines > 25){
+          // Kod xom matn bo'lib chatga to'kilmasin: fayl bloklari "Yaratilmoqda / ✓ tayyor" ro'yxati sifatida ko'rsatiladi.
+          const fItems = fencedItems(full);
+          if(fItems.length){
             if(mode !== "code"){
               mode = "code"; txt.innerHTML = "";
-              card = makeWorkCard("Kod yozilmoqda", "");
+              card = makeWorkCard("Fayllar yaratilmoqda", "");
               txt.appendChild(card.el);
             }
-            const lang = (full.slice(cut + 3).match(/^[a-zA-Z0-9+#-]*/) || [""])[0];
-            card.setStep(`Yozilmoqda: ${lang || "kod"} · ${codeLines} qator`);
+            card.setFiles(fItems.map(i => ({ name: i.name, done: i.done })));
             scrollChatToBottom();
             return;
           }
+          const open = ((full.match(/```/g) || []).length % 2) === 1;
           if(mode === "code"){ mode = "text"; if(card) card.stop(); }
           const shown = open ? full + "\n```" : full;
           txt.innerHTML = renderMarkdownLite(displaySafeText(shown)) + '<span class="type-cursor"></span>';
@@ -3167,7 +3227,12 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
         chat.display.push({ type:"note", text:`✦ Yangi skill saqlandi: ${names}` });
         renderSystemNote(`✦ Yangi skill saqlandi: ${names}`);
       }
-      const parsedFiles = parseFileBlocks(rawCleaned);
+      let parsedFiles = parseFileBlocks(rawCleaned);
+      let fencedRest = "";
+      if(!parsedFiles.length){
+        const fx = fencedToFiles(rawCleaned);
+        if(fx.files.length){ parsedFiles = fx.files; fencedRest = fx.rest; }
+      }
 
       if(switched){
         chat.display.push({ type:"note", text:`(${PROVIDERS[usedProvider].label} orqali javob berildi)` });
@@ -3186,6 +3251,10 @@ ${activeSkills.map(s => `- "${s.name}"${s.description ? " (" + s.description + "
         const preferredHtml = parsedFiles.find(f => isHtmlFile(f.name));
         chat.activeFile = preferredHtml ? preferredHtml.name : parsedFiles[parsedFiles.length-1].name;
         const caption = NATURAL_CAPTIONS[Math.floor(Math.random() * NATURAL_CAPTIONS.length)];
+        if(fencedRest && fencedRest.length < 700){
+          chat.display.push({ type:"assistant", text: fencedRest, feedback: null });
+          renderAssistantText(fencedRest, false, chat.display[chat.display.length - 1]);
+        }
         chat.display.push({ type:"files-card", names, caption });
         renderFilesCard(names, caption);
         renderFileTabs(chat);
