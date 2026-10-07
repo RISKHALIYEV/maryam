@@ -219,6 +219,14 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
         return n;
       },
 
+      // AI Ustoz: JSON rejimidagi so'rov (responseMimeType=application/json).
+      async geminiJSON({ model, systemInstruction, prompt, temperature, timeoutMs }) {
+        if (!ai) throw Object.assign(new Error(diag.aiError || "Firebase AI Logic SDK yuklanmadi."), { code: "maryam/no-ai" });
+        const gm = makeModel({ model, systemInstruction, generationConfig: { temperature: temperature == null ? 0.7 : temperature, responseMimeType: "application/json" } });
+        const res = await withTimeout(gm.generateContent(prompt), timeoutMs || 60000, "generateContent");
+        return res.response.text();
+      },
+
       // Diagnostika uchun: oddiy (stream bo'lmagan) so'rov.
       async geminiPing({ model, prompt, timeoutMs }) {
         if (!ai) throw Object.assign(new Error(diag.aiError || "Firebase AI Logic SDK yuklanmadi."), { code: "maryam/no-ai" });
@@ -1180,6 +1188,40 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
     .adm-msg{max-width:100%;}
     .adm-dl{grid-template-columns:78px 1fr;}
   }
+  /* ============ AI USTOZ ============ */
+  .ust{position:fixed;inset:0;z-index:1550;display:none;flex-direction:column;background:var(--bg);color:var(--text);font-family:var(--sans);padding-top:env(safe-area-inset-top,0)}
+  .ust.on{display:flex}
+  body:not(.auth-in) .ust,body:not(.auth-in) .ust-entry{display:none!important}
+  .ust-top{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border-soft);background:var(--bg-panel)}
+  .ust-top b{font-family:var(--script);font-size:25px;color:var(--accent-hover);flex:1}
+  .ust-x{width:44px;height:44px;border-radius:12px;border:1px solid var(--border);background:var(--bg-input);color:var(--text);font-size:18px}
+  .ust-body{flex:1;overflow-y:auto;padding:16px;padding-bottom:calc(24px + env(safe-area-inset-bottom,0));max-width:760px;width:100%;margin:0 auto}
+  .ust-card{background:var(--bg-panel);border:1px solid var(--border);border-radius:18px;padding:16px;margin-bottom:14px;box-shadow:0 10px 30px rgba(0,0,0,.18);animation:ustIn .35s ease}
+  @keyframes ustIn{from{opacity:0;transform:translateY(10px)}}
+  .ust-card h3{margin:0 0 8px;font-family:var(--script);font-size:26px;color:var(--accent-hover)}
+  .ust-in,.ust select{width:100%;padding:13px;border-radius:12px;border:1px solid var(--border);background:var(--bg-input);color:var(--text);font-size:16px}
+  .ust-row{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.ust-row>*{flex:1;min-width:88px}
+  .ust-chip{padding:13px 8px;border-radius:12px;border:1px solid var(--border);background:var(--bg-input);color:var(--text);font-size:15px;transition:.2s}
+  .ust-chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .ust-btn{width:100%;padding:15px;border-radius:14px;border:0;background:linear-gradient(135deg,var(--accent),var(--accent-hover));color:#fff;font-size:17px;box-shadow:0 8px 22px var(--accent-soft-strong);margin-top:8px}
+  .ust-btn.alt{background:var(--bg-input);color:var(--text);border:1px solid var(--border);box-shadow:none}
+  .ust-dots{display:flex;gap:6px;margin:2px 0 6px}.ust-dots i{flex:1;height:7px;border-radius:5px;background:var(--border);transition:.4s}.ust-dots i.on{background:var(--accent)}
+  .ust-n{font-size:13px;color:var(--text-muted);text-align:right;margin-bottom:8px}
+  .ust-board{background-color:#FBF6E4;color:#2E2A1E;border-radius:16px;padding:16px;background-image:linear-gradient(#0000 23px,#e3d9b8 24px),linear-gradient(90deg,#0000 23px,#e3d9b8 24px);background-size:24px 24px;font-family:var(--script);font-size:25px;line-height:1.3;min-height:150px;margin-bottom:12px}
+  .ust-board .fm{color:#2457c5;font-size:30px;margin:8px 0;animation:ustIn .6s ease}.ust-board .ex{font-size:21px;color:#7a3b1f}
+  .ust-board ul{margin:6px 0;padding-left:22px}.ust-board svg{width:100%;height:auto;background:#fff9;border-radius:10px}
+  .ust-opt{display:block;width:100%;text-align:left;padding:14px;margin:8px 0;border-radius:12px;border:1px solid var(--border);background:var(--bg-input);color:var(--text);font-size:16px}
+  .ust-opt.ok{background:rgba(122,155,110,.3);border-color:var(--ok)}.ust-opt.bad{background:var(--danger-soft);border-color:var(--danger)}
+  .ust-flip{perspective:900px;height:230px;margin:10px 0}.ust-fi{position:relative;height:100%;transition:transform .5s;transform-style:preserve-3d}.ust-flip.f .ust-fi{transform:rotateY(180deg)}
+  .ust-fi>div{position:absolute;inset:0;backface-visibility:hidden;display:flex;align-items:center;justify-content:center;text-align:center;padding:18px;border-radius:18px;border:1px solid var(--border);background:var(--bg-panel);font-size:21px}
+  .ust-fi>div+div{transform:rotateY(180deg);background:var(--accent-soft)}
+  .ust-sk{height:16px;border-radius:8px;margin:10px 0;background:linear-gradient(90deg,var(--border-soft),var(--border),var(--border-soft));background-size:200% 100%;animation:ustSk 1.2s infinite}
+  @keyframes ustSk{to{background-position:-200% 0}}
+  .ust-big{font-size:64px;text-align:center;font-family:var(--script);color:var(--accent-hover);animation:ustPop .6s cubic-bezier(.2,1.6,.4,1)}
+  @keyframes ustPop{from{transform:scale(.3);opacity:0}}
+  .ust-err{border-color:var(--danger);color:var(--danger)}
+  .ust-sm{font-size:13.5px;color:var(--text-muted)}
+  .ust-ask{display:flex;gap:8px;margin:10px 0}.ust-ask input{flex:1}.ust-ask button{width:48px;border-radius:12px;border:1px solid var(--border);background:var(--bg-input);color:var(--text);font-size:18px}
 </style>
 </head>
 <body class="auth-loading">
@@ -1237,6 +1279,7 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
       Yangi suhbat
     </button>
+    <button class="new-chat-btn ust-entry" id="ustOpenBtn" type="button">🎓 AI Ustoz</button>
 
     <div class="search-wrap">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -1491,6 +1534,11 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
     </nav>
     <div class="adm-body" id="admBody"></div>
   </div>
+</div>
+
+<div class="ust" id="ustPanel" role="dialog" aria-modal="true" aria-label="AI Ustoz">
+  <header class="ust-top"><b>🎓 AI Ustoz</b><button class="ust-x" id="ustHome" type="button" aria-label="Bosh sahifa">⌂</button><button class="ust-x" id="ustClose" type="button" aria-label="Yopish">✕</button></header>
+  <div class="ust-body" id="ustBody"></div>
 </div>
 
 <div class="modal-backdrop" id="skillsModalBackdrop">
@@ -6060,6 +6108,205 @@ Javobda faqat bitta fayl bloki va 1 qator izoh yoz.`;
   registerServiceWorker();
 })();
 </script>
+<script>
+/* ===== AI USTOZ — alohida blok: mavjud Maryam kodiga tegmaydi, faqat window.MaryamFBApi'dan foydalanadi ===== */
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const MODELS=["gemini-3.5-flash-lite","gemini-3.7-flash","gemini-3.8-flash","gemini-3.5-flash"];
+const LANGS={uz:["O'zbekcha","uz-UZ"],ru:["Русский","ru-RU"],en:["English","en-US"]};
+const SUBJ=["Umumiy","Matematika","Fizika","Biologiya","Tarix","Informatika","Ingliz tili"];
+const LEVEL=["Boshlang'ich","5–6-sinf","7–9-sinf","10–11-sinf","Universitet"];
+let api=null,uid=null,S={n:10,diff:"O'rta"},cur=null,rec=null,gen=0;
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const sup=s=>esc(s).replace(/\^(\d+)/g,(m,d)=>d.split("").map(c=>"⁰¹²³⁴⁵⁶⁷⁸⁹"[c]).join(""));
+const body=()=>$("ustBody");
+const base=()=>["users",uid,"education","main"];
+function toast(t){const d=document.createElement("div");d.textContent=t;d.style.cssText="position:fixed;left:50%;bottom:30px;transform:translateX(-50%);z-index:3000;background:var(--accent);color:#fff;padding:10px 16px;border-radius:12px";document.body.appendChild(d);setTimeout(()=>d.remove(),2200);}
+function parseJSON(t){t=String(t||"").replace(/```(?:json)?/gi,"").trim();const a=t.indexOf("{"),b=t.lastIndexOf("}");if(a<0||b<a)throw new Error("AI javobi JSON emas");return JSON.parse(t.slice(a,b+1));}
+async function ai(prompt){
+  if(!api||!api.geminiJSON)throw new Error("AI ulanmagan. Qayta kiring.");
+  const lang=LANGS[val("uG")||"uz"][0],sys="Sen Maryam AI Ustoz — mehribon, aniq o'qituvchisan. Faqat toza JSON qaytar. Javob tili: "+lang+". Fan: "+(val("uS")||"Umumiy")+". Daraja: "+(val("uL")||"umumiy")+".";
+  let err;
+  for(const m of MODELS){try{return parseJSON(await api.geminiJSON({model:m,prompt,systemInstruction:sys}));}catch(e){err=e;console.warn("[Ustoz]",m,e&&e.message);}}
+  throw err;
+}
+function val(id){const e=$(id);return e?e.value.trim():(S[id]||"");}
+async function save(kind,id,data){if(!api||!uid)return;try{await api.setDoc([...base(),kind,id],Object.assign({},data,{updatedAt:api.serverTimestamp()}),true);}catch(e){console.warn("[Ustoz] saqlanmadi:",e&&e.code);}}
+function load(msg){gen++;body().innerHTML='<div class="ust-card"><h3>'+esc(msg)+'</h3><div class="ust-sk"></div><div class="ust-sk" style="width:70%"></div><div class="ust-sk" style="width:85%"></div></div>';}
+function fail(e,retry){body().innerHTML='<div class="ust-card ust-err"><h3>Xatolik</h3><p>'+esc(e&&e.message||e)+'</p></div><button class="ust-btn" data-act="'+retry+'">↻ Qayta urinish</button><button class="ust-btn alt" data-act="home">Bosh sahifa</button>';}
+/* ---------- grafik: xavfsiz ifoda kompilyatori ---------- */
+function compile(expr){
+  let e=String(expr||"").replace(/^\s*y\s*=/i,"").replace(/\^/g,"**").replace(/\bpi\b/gi,"Math.PI").replace(/\b(sin|cos|tan|sqrt|abs|log|exp)\b/g,"Math.$1").replace(/(\d)\s*(x|\(|Math)/g,"$1*$2").replace(/\)\s*(x|\d|\(|Math)/g,")*$1").replace(/x\s*\(/g,"x*(");
+  if(!/^[0-9x+\-*\/().,\s]*$/.test(e.replace(/Math\.(PI|sin|cos|tan|sqrt|abs|log|exp)/g,"")))return null;
+  try{const f=new Function("x","return "+e);const t=f(1);return typeof t==="number"?f:null;}catch(_){return null;}
+}
+function graph(fn,x0,x1){
+  const f=compile(fn);if(!f)return"";x0=Number(x0);x1=Number(x1);if(!(x1>x0)){x0=-5;x1=5;}
+  const P=[];let lo=1e9,hi=-1e9;
+  for(let i=0;i<=160;i++){const x=x0+(x1-x0)*i/160;let y;try{y=f(x);}catch(_){y=NaN;}if(isFinite(y)){P.push([x,y]);lo=Math.min(lo,y);hi=Math.max(hi,y);}else P.push(null);}
+  if(!P.some(Boolean))return"";
+  lo=Math.max(lo,-30);hi=Math.min(hi,30);if(hi-lo<1){hi+=1;lo-=1;}const pad=(hi-lo)*.1;lo-=pad;hi+=pad;
+  const W=320,H=220,X=x=>(x-x0)/(x1-x0)*W,Y=y=>H-(y-lo)/(hi-lo)*H;
+  let d="",pen=false;for(const p of P){if(!p||p[1]<lo||p[1]>hi){pen=false;continue;}d+=(pen?"L":"M")+X(p[0]).toFixed(1)+" "+Y(p[1]).toFixed(1);pen=true;}
+  const ax=(x0<0&&x1>0)?'<line x1="'+X(0)+'" y1="0" x2="'+X(0)+'" y2="'+H+'" stroke="#555" stroke-width="1.5"/>':"",ay=(lo<0&&hi>0)?'<line x1="0" y1="'+Y(0)+'" x2="'+W+'" y2="'+Y(0)+'" stroke="#555" stroke-width="1.5"/>':"";
+  return '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="grafik">'+ax+ay+'<path d="'+d+'" fill="none" stroke="#2457c5" stroke-width="2.5" stroke-linecap="round"><animate attributeName="stroke-dasharray" from="0 2000" to="2000 0" dur="1.4s" fill="freeze"/></path><text x="6" y="16" font-size="14" fill="#2457c5">y = '+esc(sup(String(fn).replace(/^\s*y\s*=/i,"")))+'</text></svg>';
+}
+/* ---------- bosh sahifa ---------- */
+const opt=(a,sel)=>a.map(x=>'<option'+(x===sel?" selected":"")+'>'+esc(x)+'</option>').join("");
+async function home(){
+  stopVoice();gen++;
+  body().innerHTML='<div id="ustLast"></div><div class="ust-card"><h3>Nimani o\'rganamiz?</h3>'+
+  '<input class="ust-in" id="uT" placeholder="Masalan: Kvadrat funksiya, Fotosintez, Python..." maxlength="120">'+
+  '<div class="ust-row"><select id="uS">'+opt(SUBJ)+'</select><select id="uL">'+opt(LEVEL,"7–9-sinf")+'</select><select id="uG">'+Object.keys(LANGS).map(k=>'<option value="'+k+'">'+LANGS[k][0]+'</option>').join("")+'</select></div>'+
+  '<div class="ust-sm">Savollar soni</div><div class="ust-row" id="uN">'+[10,20,30].map(n=>'<button type="button" class="ust-chip'+(S.n===n?" on":"")+'" data-n="'+n+'">'+n+'</button>').join("")+'</div>'+
+  '<div class="ust-sm">Qiyinlik</div><div class="ust-row" id="uD">'+["Oson","O'rta","Qiyin"].map(n=>'<button type="button" class="ust-chip'+(S.diff===n?" on":"")+'" data-d="'+n+'">'+n+'</button>').join("")+'</div>'+
+  '<button class="ust-btn" data-act="lesson">🎓 Interaktiv dars (6 bosqich)</button><button class="ust-btn alt" data-act="test">📝 Mavzu bo\'yicha test</button><button class="ust-btn alt" data-act="cards">🗂 Kartochkalar</button></div>';
+  if(api&&uid){try{const p=await api.getDoc([...base(),"progress","last"]);const el=$("ustLast");if(p&&p.title&&el)el.innerHTML='<div class="ust-card"><div class="ust-sm">Oxirgi darsingiz</div><b>'+esc(p.title)+' — '+esc(p.step)+'/'+esc(p.total)+'</b><button class="ust-btn" data-act="resume">▶ Davom etish</button></div>';}catch(e){}}
+}
+/* ---------- interaktiv dars ---------- */
+async function lesson(topic){
+  topic=topic||val("uT");if(!topic)return toast("Avval mavzuni yozing");
+  load("Dars tayyorlanmoqda...");const g=gen;
+  try{
+    const d=await ai('Mavzu: "'+topic+'". 6 bosqichli interaktiv dars yarat: 1 Kirish, 2 Asosiy formula/qoida, 3 Oddiy misol, 4 Grafik yoki diagramma, 5 Muhim qoida, 6 Mini test. JSON: {"title":"","steps":[{"title":"","text":"2-3 gap tushuntirish","blocks":[{"type":"formula","formula":"y = ax^2 + bx + c","explanation":""},{"type":"graph","function":"x^2"},{"type":"list","items":[""]},{"type":"quiz","q":"","options":["","","",""],"answer":0}]}]}. Faqat mavzuga mos bloklarni ishlat (graph faqat funksiya bo\'lsa). Aynan 6 ta bosqich.');
+    if(g!==gen)return;
+    if(!d.steps||!d.steps.length)throw new Error("Dars bo'sh qaytdi");
+    d.steps=d.steps.slice(0,8);cur={d:d,i:0,topic:topic};
+    save("lessons",String(Date.now()),{title:d.title||topic,topic:topic,data:JSON.stringify(d).slice(0,200000)});
+    step(0);
+  }catch(e){fail(e,"lesson");}
+}
+function blockHtml(b,k){
+  if(!b)return"";
+  if(b.type==="formula")return'<div class="fm">'+sup(b.formula)+'</div>'+(b.explanation?'<div class="ex">'+esc(b.explanation)+'</div>':"");
+  if(b.type==="graph")return graph(b.function,b.xmin,b.xmax);
+  if(b.type==="list"&&Array.isArray(b.items))return'<ul>'+b.items.map(x=>'<li>'+sup(x)+'</li>').join("")+'</ul>';
+  if(b.type==="quiz"&&Array.isArray(b.options))return'<div class="ex">'+esc(b.q)+'</div>'+b.options.map((o,j)=>'<button type="button" class="ust-opt" data-q="'+k+'" data-j="'+j+'">'+esc(o)+'</button>').join("");
+  return"";
+}
+function step(i){
+  stopVoice();const L=cur.d,s=L.steps[i],n=L.steps.length;cur.i=i;
+  body().innerHTML='<div class="ust-dots">'+L.steps.map((_,k)=>'<i class="'+(k<=i?"on":"")+'"></i>').join("")+'</div><div class="ust-n">'+(i+1)+' / '+n+'</div>'+
+  '<div class="ust-board"><div style="font-size:30px">'+esc(s.title)+'</div>'+(s.blocks||[]).map((b,k)=>blockHtml(b,k)).join("")+'</div>'+
+  '<div class="ust-card">'+esc(s.text)+'<div class="ust-row"><button class="ust-chip" data-act="speak">🔊 Tinglash</button>'+'</div></div><div id="uA"></div>'+
+  '<div class="ust-ask"><input class="ust-in" id="uQ" placeholder="Yana so\'rang..."><button type="button" data-act="mic" title="Gapirish">🎙</button><button type="button" data-act="ask">➤</button></div>'+
+  '<div class="ust-row">'+(i>0?'<button class="ust-btn alt" data-act="prev">← Orqaga</button>':"")+(i<n-1?'<button class="ust-btn" data-act="next">Keyingi →</button>':'<button class="ust-btn" data-act="finish">✔ Tugatish</button>')+'</div>';
+  save("progress","last",{title:L.title||cur.topic,topic:cur.topic,step:i+1,total:n});
+  save("lessons","cur",{title:L.title||cur.topic,topic:cur.topic,data:JSON.stringify(L).slice(0,200000)});
+}
+async function ask(){
+  const q=val("uQ");if(!q||!cur)return;const L=cur.d,s=L.steps[cur.i],box=$("uA");
+  box.innerHTML='<div class="ust-card"><div class="ust-sk"></div><div class="ust-sk" style="width:60%"></div></div>';const g=gen;
+  try{
+    const r=await ai('Dars: "'+L.title+'". Bosqich '+(cur.i+1)+': "'+s.title+'". Talaba savoli: "'+q+'". Tushuntir, misol keltir, noto\'g\'ri tushunchani aniqla. JSON: {"answer":"","misconception":"","goBackTo":null yoki bosqich raqami 1..'+L.steps.length+'}');
+    if(g!==gen||!$("uA"))return;
+    const gb=Number(r.goBackTo);cur.say=r.answer;
+    $("uA").innerHTML='<div class="ust-card"><b>Ustoz:</b> '+esc(r.answer)+(r.misconception?'<p class="ust-sm">⚠ '+esc(r.misconception)+'</p>':"")+(gb>=1&&gb<=L.steps.length&&gb-1!==cur.i?'<button class="ust-btn alt" data-go="'+(gb-1)+'">↩ '+gb+'-bosqichga qaytish</button>':"")+'<div class="ust-row"><button class="ust-chip" data-act="speakA">🔊 Tinglash</button></div></div>';
+    $("uQ").value="";
+  }catch(e){if($("uA"))$("uA").innerHTML='<div class="ust-card ust-err">'+esc(e.message)+'</div>';}
+}
+/* ---------- ovoz (bepul Web Speech API) ---------- */
+function stopVoice(){try{speechSynthesis.cancel();}catch(e){}try{rec&&rec.stop();}catch(e){}rec=null;}
+function speak(t){if(!("speechSynthesis"in window)||!t)return toast("Brauzer ovozni qo'llamaydi");stopVoice();const u=new SpeechSynthesisUtterance(t);u.lang=LANGS[val("uG")||"uz"][1];speechSynthesis.speak(u);}
+function mic(){
+  const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R)return toast("Brauzer mikrofonni qo'llamaydi");
+  if(rec){stopVoice();return;}
+  rec=new R();rec.lang=LANGS[val("uG")||"uz"][1];rec.interimResults=false;
+  rec.onresult=e=>{const t=e.results[0][0].transcript;if($("uQ")){$("uQ").value=t;ask();}};
+  rec.onend=()=>{rec=null;};rec.onerror=()=>{rec=null;};try{rec.start();toast("🎙 Gapiring...");}catch(e){rec=null;}
+}
+/* ---------- test ---------- */
+async function test(topic,diff){
+  topic=topic||val("uT");if(!topic)return toast("Avval mavzuni yozing");diff=diff||S.diff;
+  load("Test yaratilmoqda...");const g=gen;
+  try{
+    const d=await ai('Mavzu "'+topic+'" bo\'yicha aynan '+S.n+' ta '+diff+' darajadagi test tuz. Har savolda 4 ta variant, bittasi to\'g\'ri. JSON: {"questions":[{"q":"","options":["","","",""],"answer":0,"topic":"kichik mavzu","explain":"qisqa izoh"}]}');
+    if(g!==gen)return;
+    const Q=(d.questions||[]).filter(x=>x&&x.q&&Array.isArray(x.options)&&x.options.length>=2&&Number.isInteger(Number(x.answer))&&x.answer>=0&&x.answer<x.options.length);
+    if(!Q.length)throw new Error("Savollar olinmadi, qayta urinib ko'ring");
+    cur={Q:Q,i:0,picks:[],topic:topic,diff:diff};quiz();
+  }catch(e){fail(e,"test");}
+}
+function quiz(){
+  const Q=cur.Q,i=cur.i,q=Q[i];
+  body().innerHTML='<div class="ust-dots">'+Q.map((_,k)=>'<i class="'+(k<=i?"on":"")+'"></i>').join("")+'</div><div class="ust-n">'+(i+1)+' / '+Q.length+'</div><div class="ust-card"><h3 style="font-size:22px">'+esc(q.q)+'</h3>'+q.options.map((o,j)=>'<button type="button" class="ust-opt" data-t="'+j+'">'+esc(o)+'</button>').join("")+'<div id="uE"></div></div><div id="uNx"></div>';
+}
+function pick(j){
+  const q=cur.Q[cur.i];if(cur.picks[cur.i]!==undefined)return;cur.picks[cur.i]=j;
+  body().querySelectorAll("[data-t]").forEach(b=>{const k=+b.dataset.t;if(k===q.answer)b.classList.add("ok");else if(k===j)b.classList.add("bad");});
+  $("uE").innerHTML=q.explain?'<p class="ust-sm">💡 '+esc(q.explain)+'</p>':"";
+  $("uNx").innerHTML='<button class="ust-btn" data-act="'+(cur.i<cur.Q.length-1?"qnext":"result")+'">'+(cur.i<cur.Q.length-1?"Keyingi →":"Natijani ko'rish")+'</button>';
+}
+async function result(){
+  const Q=cur.Q,tot=Q.length;let ok=0;const wrong=[],byT={};
+  Q.forEach((q,i)=>{if(cur.picks[i]===q.answer)ok++;else{wrong.push({q:q.q,picked:q.options[cur.picks[i]]||"—",right:q.options[q.answer],explain:q.explain||"",topic:q.topic||cur.topic});const t=q.topic||cur.topic;byT[t]=(byT[t]||0)+1;}});
+  const pct=Math.round(ok/tot*100);cur.res={pct,ok,tot,wrong,byT};
+  const weak=Object.keys(byT).sort((a,b)=>byT[b]-byT[a])[0]||"";
+  body().innerHTML='<div class="ust-card"><div class="ust-big">'+(pct>=70?"🎉 ":"🎯 ")+pct+'%</div><p style="text-align:center;font-size:19px">'+ok+' / '+tot+'<br>To\'g\'ri: '+ok+' · Noto\'g\'ri: '+(tot-ok)+'</p></div><div id="uAn"><div class="ust-card"><div class="ust-sk"></div><div class="ust-sk" style="width:70%"></div></div></div>'+
+  (wrong.length?'<button class="ust-btn alt" data-act="explainWrong">🔍 Xatolarimni tushuntir</button>':"")+
+  (pct<60&&weak?'<button class="ust-btn" data-lesson="'+esc(weak)+'">📘 Mini-dars: '+esc(weak)+'</button>':"")+
+  (pct>=85?'<button class="ust-btn" data-hard="1">🔥 Qiyinroq test</button>':"")+'<button class="ust-btn alt" data-act="home">Bosh sahifa</button>';
+  save("results",String(Date.now()),{topic:cur.topic,diff:cur.diff,percent:pct,correct:ok,total:tot,weakTopics:Object.keys(byT).slice(0,8)});
+  wrong.length&&save("mistakes",String(Date.now()),{topic:cur.topic,items:wrong.slice(0,30).map(w=>({q:w.q.slice(0,300),topic:String(w.topic).slice(0,80)}))});
+  try{
+    const r=await ai('Talaba "'+cur.topic+'" testida '+pct+'% oldi. Xato ko\'p bo\'lgan mavzular: '+JSON.stringify(byT)+'. Tahlil qil. JSON: {"analysis":"","weak":["qayta o\'rganish kerak mavzular"],"next":"keyingi tavsiya","strong":"kuchli tomonlar"}');
+    if($("uAn"))$("uAn").innerHTML='<div class="ust-card"><h3>AI tahlili</h3><p>'+esc(r.analysis)+'</p><p><b>Qayta o\'rganing:</b> '+esc((r.weak||[]).join(", "))+'</p><p><b>Keyingi qadam:</b> '+esc(r.next)+'</p><p><b>Kuchli tomonlar:</b> '+esc(r.strong)+'</p></div>';
+  }catch(e){if($("uAn"))$("uAn").innerHTML='<div class="ust-card ust-err">Tahlil olinmadi: '+esc(e.message)+'</div>';}
+}
+/* ---------- kartochkalar ---------- */
+async function cards(){
+  const topic=val("uT");if(!topic)return toast("Avval mavzuni yozing");load("Kartochkalar yaratilmoqda...");const g=gen;
+  try{
+    const d=await ai('Mavzu "'+topic+'" bo\'yicha 12 ta flashcard yarat. JSON: {"cards":[{"front":"savol yoki termin","back":"javob yoki izoh"}]}');
+    if(g!==gen)return;const C=(d.cards||[]).filter(c=>c&&c.front&&c.back);if(!C.length)throw new Error("Kartochkalar olinmadi");
+    cur={C:C,q:C.map((_,i)=>i),known:0,topic:topic};save("flashcards",String(Date.now()),{topic:topic,cards:C.slice(0,40).map(c=>({front:String(c.front).slice(0,300),back:String(c.back).slice(0,600)}))});card();
+  }catch(e){fail(e,"cards");}
+}
+function card(){
+  const tot=cur.C.length;if(!cur.q.length){body().innerHTML='<div class="ust-card"><div class="ust-big">🎉</div><p style="text-align:center">Barcha kartochkalar o\'rganildi!</p></div><button class="ust-btn" data-act="home">Bosh sahifa</button>';return;}
+  const c=cur.C[cur.q[0]];
+  body().innerHTML='<div class="ust-dots">'+cur.C.map((_,k)=>'<i class="'+(k<cur.known?"on":"")+'"></i>').join("")+'</div><div class="ust-n">'+cur.known+' / '+tot+' o\'rganildi</div><div class="ust-flip" id="uF" data-act="flip"><div class="ust-fi"><div>'+esc(c.front)+'</div><div>'+esc(c.back)+'</div></div></div><p class="ust-sm" style="text-align:center">Aylantirish uchun bosing</p><div class="ust-row"><button class="ust-btn alt" data-act="dont">✗ Bilmayman</button><button class="ust-btn" data-act="know">✓ Bilaman</button></div>';
+}
+/* ---------- hodisalar ---------- */
+function onClick(e){
+  const t=e.target.closest("button,[data-act]");if(!t||!body().contains(t))return;const D=t.dataset;
+  if(D.n){S.n=+D.n;$("uN").querySelectorAll("button").forEach(b=>b.classList.toggle("on",b===t));return;}
+  if(D.d){S.diff=D.d;$("uD").querySelectorAll("button").forEach(b=>b.classList.toggle("on",b===t));return;}
+  if(D.t!==undefined)return pick(+D.t);
+  if(D.q!==undefined){const b=cur.d.steps[cur.i].blocks[+D.q];t.parentNode.querySelectorAll("[data-q]").forEach(x=>{const k=+x.dataset.j;if(k===Number(b.answer))x.classList.add("ok");else if(x===t)x.classList.add("bad");});return;}
+  if(D.go!==undefined)return step(+D.go);
+  if(D.lesson)return lesson(D.lesson);
+  if(D.hard)return test(cur.topic,"Qiyin");
+  switch(D.act){
+    case"home":return home();case"lesson":return lesson();case"test":return test();case"cards":return cards();
+    case"resume":return resume();case"next":return step(cur.i+1);case"prev":return step(cur.i-1);
+    case"finish":return test(cur.topic,S.diff);case"ask":return ask();case"mic":return mic();
+    case"speak":return speak(cur.d.steps[cur.i].text);case"speakA":return speak(cur.say);
+    case"qnext":cur.i++;return quiz();case"result":return result();
+    case"explainWrong":body().insertAdjacentHTML("afterbegin",'<div class="ust-card"><h3>Xatolar tahlili</h3>'+cur.res.wrong.map(w=>'<p><b>'+esc(w.q)+'</b><br>Sizniki: '+esc(w.picked)+'<br>To\'g\'ri: '+esc(w.right)+(w.explain?'<br><span class="ust-sm">💡 '+esc(w.explain)+'</span>':"")+'</p>').join("")+'</div>');body().scrollTop=0;return;
+    case"flip":return $("uF").classList.toggle("f");
+    case"know":cur.q.shift();cur.known++;return card();
+    case"dont":cur.q.push(cur.q.shift());return card();
+  }
+}
+async function resume(){
+  load("Dars yuklanmoqda...");
+  try{const d=await api.getDoc([...base(),"lessons","cur"]),p=await api.getDoc([...base(),"progress","last"]);if(!d||!d.data)throw new Error("Saqlangan dars topilmadi");cur={d:JSON.parse(d.data),i:0,topic:d.topic};step(Math.min(Math.max((p&&p.step||1)-1,0),cur.d.steps.length-1));}catch(e){fail(e,"home");}
+}
+function open(){$("ustPanel").classList.add("on");const s=$("sidebarClose");if(s&&getComputedStyle(s).display!=="none")s.click();home();}
+function close(){stopVoice();gen++;$("ustPanel").classList.remove("on");}
+function init(){
+  const b=$("ustOpenBtn");if(b)b.addEventListener("click",open);
+  $("ustClose").addEventListener("click",close);$("ustHome").addEventListener("click",home);body().addEventListener("click",onClick);
+  body().addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="uQ")ask();});
+  if(window.MaryamFBReady)window.MaryamFBReady.then(r=>{if(r&&r.ok){api=r.api;api.onAuthChanged(u=>{uid=u?u.uid:null;if(!u)close();});}}).catch(()=>{});
+  window.__ust={parseJSON,compile,graph};
+}
+init();
+})();
+</script>
+
 </body>
 </html>
 
