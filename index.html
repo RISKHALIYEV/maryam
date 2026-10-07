@@ -97,14 +97,29 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
     try { await authM.setPersistence(auth, authM.indexedDBLocalPersistence); }
     catch (e1) { try { await authM.setPersistence(auth, authM.browserLocalPersistence); } catch (e2) { /* standart persistence */ } }
 
+    // Firestore faqat XOTIRADAGI (memory) keshdan foydalanadi: brauzer localStorage/IndexedDB kvotasi to'lmaydi
+    // (QuotaExceededError / "INTERNAL ASSERTION FAILED" sababi eski persistentLocalCache + multi-tab manager edi).
+    // Chatlarning oflayn nusxasini ilovaning o'zi (IndexedDB "maryam-chats") saqlaydi, shuning uchun funksiya yo'qolmaydi.
+    try {
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k && /^firestore_/i.test(k)) localStorage.removeItem(k); // eski multi-tab koordinatsiya kalitlari
+      }
+    } catch (e) { /* localStorage mavjud bo'lmasligi mumkin */ }
+    try {
+      if (window.indexedDB) indexedDB.deleteDatabase("firestore/[DEFAULT]/" + FIREBASE_CONFIG.projectId + "/main"); // eski persistent kesh (faqat kesh, ma'lumot emas)
+    } catch (e) {}
     let db;
     try {
+      let cache;
+      try { cache = fsM.memoryLocalCache({ garbageCollector: fsM.memoryLruGarbageCollector({ cacheSizeBytes: 40 * 1024 * 1024 }) }); }
+      catch (e0) { cache = fsM.memoryLocalCache(); }
       db = fsM.initializeFirestore(app, {
         ignoreUndefinedProperties: true,
         experimentalAutoDetectLongPolling: true,
-        localCache: fsM.persistentLocalCache({ tabManager: fsM.persistentMultipleTabManager() })
+        localCache: cache
       });
-    } catch (e) { db = fsM.getFirestore(app); }
+    } catch (e) { db = fsM.getFirestore(app); } // allaqachon ishga tushirilgan bo'lsa, o'sha nusxa qayta ishlatiladi
 
     // App Check — faqat kalit kiritilgan bo'lsa. Muvaffaqiyatsiz bo'lsa Gemini'ni buzmaydi.
     if ((RECAPTCHA_SITE_KEY && !/^YOUR_/i.test(RECAPTCHA_SITE_KEY)) || (RECAPTCHA_V3_SITE_KEY && !/^YOUR_/i.test(RECAPTCHA_V3_SITE_KEY))) {
@@ -5498,17 +5513,17 @@ Mavzu/ko'rsatma: "${topic}"`;
         foot.innerHTML = admPagerHtml(L.pager);
       }catch(e){ if(my !== L.seq) return; list.innerHTML = admErrHtml(e); foot.innerHTML = ""; }
     }
-    // Firestore'da to'liq matnli qidiruv yo'q: chatlar 50 tadan o'qilib brauzerda filtrlanadi (bir bosishda eng ko'pi 200 ta).
+    // Firestore'da to'liq matnli qidiruv yo'q: chatlar 20 tadan o'qilib brauzerda filtrlanadi (bir bosishda eng ko'pi 100 ta, xotira to'lmasligi uchun).
     async function runScan(){
       const my = ++L.seq, s = L.scan, q = L.q.toLowerCase();
       foot.innerHTML = ""; if(!s.matches.length) list.innerHTML = '<div class="adm-loading">Qidirilmoqda…</div>';
       try{
         let batches = 0;
-        while(batches < 4 && !s.done){
-          const res = await fbApi.admin.chats({ uid, after: s.cursor, size: 50, from: L.from, to: L.to });
+        while(batches < 5 && !s.done){
+          const res = await fbApi.admin.chats({ uid, after: s.cursor, size: 20, from: L.from, to: L.to });
           if(my !== L.seq) return;
           if(!res.length){ s.done = true; break; }
-          s.cursor = res[res.length - 1].snap; if(res.length < 50) s.done = true;
+          s.cursor = res[res.length - 1].snap; if(res.length < 20) s.done = true;
           if(showUser) await admEnsureUsers(res.map(r => r.uid));
           if(my !== L.seq) return;
           res.forEach(r => { s.scanned++; if(admMatchChat(r, q)) s.matches.push(r); });
