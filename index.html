@@ -251,6 +251,53 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
       }
     };
 
+    // ---- ADMIN (faqat o'qish). UI'ni yashirish xavfsizlik emas: haqiqiy himoya Firestore Security Rules'da ----
+    api.admin = (() => {
+      const getDocsS = fsM.getDocsFromServer || fsM.getDocs;
+      const getDocS = fsM.getDocFromServer || fsM.getDoc;
+      const toItem = (d) => ({ id: d.id, uid: (d.ref && d.ref.parent && d.ref.parent.parent) ? d.ref.parent.parent.id : null, data: d.data(), snap: d });
+      const run = async (q) => (await getDocsS(q)).docs.map(toItem);
+      const chatsBase = (uid) => uid ? fsM.collection(db, "users", uid, "chats") : fsM.collectionGroup(db, "chats");
+      return {
+        async claims() { const u = auth.currentUser; if (!u) return {}; const r = await authM.getIdTokenResult(u); return r.claims || {}; },
+        users({ after, size }) {
+          const c = [fsM.orderBy("lastLogin", "desc")];
+          if (after) c.push(fsM.startAfter(after));
+          c.push(fsM.limit(size || 20));
+          return run(fsM.query(fsM.collection(db, "users"), ...c));
+        },
+        chats({ uid, after, size, from, to }) {
+          const c = [];
+          if (from) c.push(fsM.where("updatedAt", ">=", from));
+          if (to) c.push(fsM.where("updatedAt", "<=", to));
+          c.push(fsM.orderBy("updatedAt", "desc"));
+          if (after) c.push(fsM.startAfter(after));
+          c.push(fsM.limit(size || 20));
+          return run(fsM.query(chatsBase(uid), ...c));
+        },
+        async getChat(uid, id) { const s = await getDocS(fsM.doc(db, "users", uid, "chats", id)); return s.exists() ? s.data() : null; },
+        async getUser(uid) { const s = await getDocS(fsM.doc(db, "users", uid)); return s.exists() ? s.data() : null; },
+        async count(kind, arg) {
+          let q;
+          if (kind === "users") q = fsM.collection(db, "users");
+          else if (kind === "chats") q = fsM.collectionGroup(db, "chats");
+          else if (kind === "userChats") q = fsM.collection(db, "users", arg, "chats");
+          else if (kind === "chatsSince") q = fsM.query(fsM.collectionGroup(db, "chats"), fsM.where("updatedAt", ">=", arg));
+          else if (kind === "activeUsers") q = fsM.query(fsM.collection(db, "users"), fsM.where("lastLogin", ">=", fsM.Timestamp.fromMillis(arg)));
+          else throw new Error("Noma'lum hisoblash turi");
+          return (await fsM.getCountFromServer(q)).data().count;
+        },
+        // Bitta (yagona) listener: eng yangi chat o'zgarganda panel yangilanadi. Panel yopilganda unsubscribe qilinadi.
+        watchNewest(cb) {
+          return fsM.onSnapshot(
+            fsM.query(fsM.collectionGroup(db, "chats"), fsM.orderBy("updatedAt", "desc"), fsM.limit(1)),
+            (s) => cb({ fromCache: s.metadata.fromCache, pending: s.metadata.hasPendingWrites, changes: s.docChanges().length }),
+            (err) => cb({ error: { code: err && err.code, message: err && err.message } })
+          );
+        }
+      };
+    })();
+
     window.MaryamFBApi = api;
     done({ ok: true, api, redirectError });
   } catch (err) {
@@ -1034,6 +1081,90 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
   .auth-spinner{border-top-color:#7C5CFF;}
   .auth-legal{color:#7F86AB;} .auth-link{color:#B9BFE4;}
   .google-btn{border-radius:18px;}
+
+  /* ============ ADMIN PANEL (faqat owner/admin) ============ */
+  .admin-act{width:100%; margin-top:6px; min-height:40px; border-radius:var(--radius-sm); border:1px solid var(--accent-soft-strong); background:var(--accent-soft); color:var(--text); font:600 13px var(--sans); cursor:pointer; touch-action:manipulation;}
+  .admin-act:hover{background:var(--accent-soft-strong);}
+  .admin-act[hidden]{display:none !important;}
+  body:not(.auth-in) .adm{display:none !important;}
+  .adm[hidden]{display:none !important;}
+  .adm{position:fixed; inset:0; z-index:1600; display:flex; justify-content:center; color:var(--text); font-family:var(--sans);
+    background:radial-gradient(900px 520px at 85% -10%,rgba(124,92,255,.30),transparent 62%),radial-gradient(760px 520px at -10% 110%,rgba(53,224,194,.16),transparent 62%),var(--bg);
+    padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);}
+  .adm-shell{width:100%; max-width:980px; height:100%; display:flex; flex-direction:column; min-height:0;}
+  .adm-top{display:flex; align-items:center; gap:10px; padding:12px 14px; border-bottom:1px solid var(--border-soft); background:color-mix(in srgb,var(--bg-panel) 62%,transparent); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);}
+  .adm-brand{flex:1; min-width:0; display:flex; align-items:center; gap:9px; font-weight:800; letter-spacing:.6px; font-size:14px;}
+  .adm-brand svg{width:18px; height:18px; color:var(--accent-hover); flex-shrink:0;}
+  .adm-brand span{background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .adm-badge{font-style:normal; font-size:10px; font-weight:700; letter-spacing:1px; padding:3px 8px; border-radius:999px; border:1px solid rgba(53,224,194,.4); color:#35E0C2; background:rgba(53,224,194,.08); white-space:nowrap; margin-left:auto;}
+  .adm-brand .adm-badge{margin-left:0;}
+  .adm-ico{width:40px; height:40px; border-radius:12px; border:1px solid var(--border); background:var(--bg-panel); color:var(--text); font-size:16px; cursor:pointer; flex-shrink:0; touch-action:manipulation;}
+  .adm-ico:hover{border-color:var(--accent);}
+  .adm-ico[hidden]{display:none !important;}
+  .adm-tabs{display:flex; gap:6px; padding:10px 14px 0; overflow-x:auto;}
+  .adm-tab{flex:1; min-width:104px; min-height:42px; border-radius:12px 12px 0 0; border:1px solid transparent; border-bottom:none; background:transparent; color:var(--text-muted); font:600 13.5px var(--sans); cursor:pointer;}
+  .adm-tab.on{color:var(--text); background:color-mix(in srgb,var(--bg-panel) 80%,transparent); border-color:var(--border); box-shadow:inset 0 -2px 0 var(--accent);}
+  .adm-body{flex:1; min-height:0; overflow-y:auto; padding:14px; border-top:1px solid var(--border-soft); -webkit-overflow-scrolling:touch;}
+  .adm-page{display:flex; flex-direction:column; gap:12px;}
+  .adm-page[hidden]{display:none !important;}
+  .adm-search{display:flex; align-items:center; gap:8px; padding:0 12px; min-height:46px; border-radius:14px; border:1px solid var(--border); background:color-mix(in srgb,var(--bg-panel) 75%,transparent); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);}
+  .adm-search:focus-within{border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft);}
+  .adm-search input{flex:1; min-width:0; background:transparent; border:none; outline:none; color:var(--text); font-size:16px;}
+  .adm-filters{display:flex; flex-direction:column; gap:10px;}
+  .adm-dates{display:flex; gap:10px; flex-wrap:wrap;}
+  .adm-dates label{display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); flex:1; min-width:140px;}
+  .adm-dates input{flex:1; min-width:0; min-height:40px; border-radius:10px; border:1px solid var(--border); background:var(--bg-input); color:var(--text); padding:0 8px; font-size:14px; color-scheme:dark light;}
+  .adm-hint,.adm-note{font-size:12px; color:var(--text-faint);}
+  .adm-list{display:flex; flex-direction:column; gap:8px;}
+  .adm-row{display:flex; align-items:center; gap:12px; width:100%; text-align:left; padding:12px 14px; min-height:60px; border-radius:16px; border:1px solid var(--border); background:color-mix(in srgb,var(--bg-panel) 72%,transparent); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); color:var(--text); cursor:pointer; touch-action:manipulation; transition:border-color .15s, transform .12s;}
+  .adm-row:hover{border-color:var(--accent); transform:translateY(-1px);}
+  .adm-av{width:42px; height:42px; border-radius:50%; background:var(--grad); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; overflow:hidden; flex-shrink:0;}
+  .adm-av.big{width:60px; height:60px; font-size:24px;}
+  .adm-av img{width:100%; height:100%; object-fit:cover; display:block;}
+  .adm-meta{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px;}
+  .adm-meta b{font-size:14.5px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .adm-meta small{font-size:12px; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .adm-meta .adm-who{color:var(--accent-hover);}
+  .adm-meta em{font-style:normal; font-size:12px; color:var(--text-faint); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .adm-count{font:600 12px var(--sans); color:#35E0C2; white-space:nowrap;}
+  .adm-chev{color:var(--text-faint); font-size:20px;}
+  .adm-pager{display:flex; gap:6px; flex-wrap:wrap; justify-content:center; padding:4px 0;}
+  .adm-pg,.adm-more{min-width:40px; min-height:40px; padding:0 12px; border-radius:12px; border:1px solid var(--border); background:var(--bg-panel); color:var(--text-muted); font:600 13px var(--sans); cursor:pointer; touch-action:manipulation;}
+  .adm-pg.on{background:var(--grad); color:#fff; border-color:transparent;}
+  .adm-more{align-self:center; color:var(--text);}
+  .adm-foot{display:flex; flex-direction:column; gap:8px; align-items:center;}
+  .adm-loading,.adm-empty{padding:26px 10px; text-align:center; color:var(--text-faint); font-size:13.5px;}
+  .adm-err{padding:12px 14px; border-radius:14px; border:1px solid var(--danger); background:var(--danger-soft); color:var(--text); font-size:13px; line-height:1.55;}
+  .adm-err a{color:var(--accent-hover);}
+  .adm-stats{display:grid; grid-template-columns:repeat(4,1fr); gap:10px;}
+  .adm-stat{padding:16px 14px; border-radius:18px; border:1px solid var(--border); background:color-mix(in srgb,var(--bg-panel) 72%,transparent); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); display:flex; flex-direction:column; gap:4px;}
+  .adm-stat b{font-size:26px; font-weight:800; background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .adm-stat span{font-size:12px; color:var(--text-muted);}
+  .adm-h{margin:6px 2px 0; font-size:13px; font-weight:700; letter-spacing:.4px; color:var(--text-muted);}
+  .adm-card{padding:16px; border-radius:18px; border:1px solid var(--border); background:color-mix(in srgb,var(--bg-panel) 72%,transparent); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);}
+  .adm-card-top{display:flex; align-items:center; gap:14px; margin-bottom:12px;}
+  .adm-dl{display:grid; grid-template-columns:96px 1fr; gap:8px 12px; margin:0; font-size:13.5px;}
+  .adm-dl dt{color:var(--text-faint);}
+  .adm-dl dd{margin:0; word-break:break-all;}
+  .adm-dl .mono{font-family:var(--mono); font-size:12px;}
+  .adm-chat-head{display:flex; align-items:center; gap:12px;}
+  .adm-title{margin:4px 0 0; font-size:19px; font-weight:800;}
+  .adm-sub{font-size:12px; color:var(--text-faint);}
+  .adm-thread{display:flex; flex-direction:column; gap:12px; margin-top:6px;}
+  .adm-msg{max-width:92%; padding:12px 14px; border-radius:16px; border:1px solid var(--border); background:color-mix(in srgb,var(--bg-panel) 78%,transparent); min-width:0;}
+  .adm-msg.user{align-self:flex-end; background:var(--accent-soft); border-color:var(--accent-soft-strong);}
+  .adm-msg.ai{align-self:flex-start;}
+  .adm-role{font-size:10.5px; font-weight:800; letter-spacing:1.2px; margin-bottom:6px; color:var(--accent-hover);}
+  .adm-msg.ai .adm-role{color:#35E0C2;}
+  .adm-txt{font-size:15px; line-height:1.65; word-wrap:break-word; overflow-wrap:anywhere;}
+  .adm-txt.pre{white-space:pre-wrap;}
+  .adm-txt.assistant-text{font-size:15px; padding-top:0;}
+  @media (max-width:640px){
+    .adm-stats{grid-template-columns:repeat(2,1fr);}
+    .adm-body{padding:10px;}
+    .adm-msg{max-width:100%;}
+    .adm-dl{grid-template-columns:78px 1fr;}
+  }
 </style>
 </head>
 <body class="auth-loading">
@@ -1112,6 +1243,7 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
         <button class="user-act" id="userSettingsBtn" type="button">Sozlamalar</button>
         <button class="user-act danger" id="logoutBtn" type="button">Chiqish</button>
       </div>
+      <button class="user-act admin-act" id="adminOpenBtn" type="button" hidden>🛡 Admin Panel</button>
     </div>
 
     <div class="sidebar-footer">
@@ -1323,6 +1455,26 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
     <div class="modal-actions">
       <button class="btn btn-accent" id="closeLegalBtn" type="button">Yopish</button>
     </div>
+  </div>
+</div>
+
+<div class="adm" id="admPanel" hidden role="dialog" aria-modal="true" aria-label="Maryam Admin">
+  <div class="adm-shell">
+    <header class="adm-top">
+      <button class="adm-ico" id="admBack" type="button" hidden aria-label="Orqaga">←</button>
+      <div class="adm-brand">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0 L14.2 9.3 L24 12 L14.2 14.7 L12 24 L9.8 14.7 L0 12 L9.8 9.3 Z"/></svg>
+        <span>MARYAM ADMIN</span>
+        <i class="adm-badge">READ-ONLY</i>
+      </div>
+      <button class="adm-ico" id="admClose" type="button" aria-label="Yopish">✕</button>
+    </header>
+    <nav class="adm-tabs" id="admTabs">
+      <button class="adm-tab on" data-tab="users" type="button">👥 Users</button>
+      <button class="adm-tab" data-tab="chats" type="button">💬 Chats</button>
+      <button class="adm-tab" data-tab="activity" type="button">📊 Activity</button>
+    </nav>
+    <div class="adm-body" id="admBody"></div>
   </div>
 </div>
 
@@ -4442,7 +4594,7 @@ Mavzu/ko'rsatma: "${topic}"`;
 
   /* ---- Huquqiy havolalar ---- */
   const LEGAL_TEXTS = {
-    privacy: { title: "Maxfiylik siyosati — qisqacha", body: "Google hisobingiz (ism, email, profil rasmi) Firebase Authentication orqali tekshiriladi. Suhbatlar, loyihalar va taqdimotlaringiz Firebase Firestore’da faqat sizning hisobingizga bog‘langan holda saqlanadi va boshqa foydalanuvchilarga ko‘rinmaydi. AI so‘rovlari Google (Firebase AI Logic) serverlariga yuboriladi. Maryam AI hech qanday API kalit talab qilmaydi." },
+    privacy: { title: "Maxfiylik siyosati — qisqacha", body: "Google hisobingiz (ism, email, profil rasmi) Firebase Authentication orqali tekshiriladi. Suhbatlar, loyihalar va taqdimotlaringiz Firebase Firestore’da faqat sizning hisobingizga bog‘langan holda saqlanadi va boshqa foydalanuvchilarga ko‘rinmaydi. Xavfsizlik, texnik yordam va suiiste’molning oldini olish maqsadida loyiha administratori suhbatlarni faqat o‘qish rejimida ko‘ra oladi. AI so‘rovlari Google (Firebase AI Logic) serverlariga yuboriladi. Maryam AI hech qanday API kalit talab qilmaydi." },
     terms: { title: "Foydalanish shartlari — qisqacha", body: "Maryam AI yordamchi vosita: javoblar noto‘g‘ri bo‘lishi mumkin, muhim qarorlardan oldin tekshirib ko‘ring. Hisobingiz xavfsizligi uchun o‘zingiz mas’ulsiz. Xizmatdan qonunga xilof maqsadlarda yoki boshqalarga zarar yetkazish uchun foydalanish mumkin emas." }
   };
   function showLegal(kind){
@@ -5161,6 +5313,329 @@ Mavzu/ko'rsatma: "${topic}"`;
   window.addEventListener("pagehide", () => { if(cloudReady && !cloudBusy) cloudSyncNow(); });
   window.addEventListener("online", () => { if(currentUser && fbApi){ if(!cloudReady) cloudBootstrap(sessionSeq); else scheduleCloudSync(); } });
 
+  /* =================== ADMIN MONITORING (OWNER/ADMIN, FAQAT O'QISH) =================== */
+  // ADMIN_UID: faqat shu UID'li hisob Admin Panelni ko'radi. Bu tekshiruv FAQAT UI uchun;
+  // HAQIQIY himoya — Firebase Console'dagi Firestore Security Rules (ichidagi UID shu bilan bir xil bo'lishi shart).
+  const ADMIN_UID = "wyCJ8lSkV6Wa1zMRmqeXmxM3lIL2";
+  const ADM_PAGE = 20;
+  let adminClaim = false;
+  const adm = { depth: 0, tab: "users", unsub: null, firstSnap: true, liveTimer: null, live: null, userMap: {}, usersAll: null, countCache: {} };
+
+  const admOk = () => !!currentUser && currentUser.uid === ADMIN_UID;
+  const admMs = (v) => v == null ? 0 : (typeof v === "number" ? v : (typeof v.toMillis === "function" ? v.toMillis() : (v.seconds ? v.seconds * 1000 : 0)));
+  const admDate = (v) => { const ms = admMs(v); return ms ? new Date(ms).toLocaleString("uz-UZ", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"; };
+  const admNum = (n) => (typeof n === "number" ? n.toLocaleString("en-US") : "—");
+  const admName = (d) => (d && (d.displayName || (d.email ? String(d.email).split("@")[0] : ""))) || "Foydalanuvchi";
+  function admAvatar(d){
+    const ph = d && typeof d.photoURL === "string" && d.photoURL.indexOf("https://") === 0 ? d.photoURL : "";
+    return ph ? `<img src="${escH(ph)}" alt="" referrerpolicy="no-referrer">` : escH(admName(d).charAt(0).toUpperCase());
+  }
+  function admDebounce(fn, ms){ let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+  function admErrHtml(e){
+    const code = (e && e.code) || ""; const msg = (e && e.message) || "Noma'lum xatolik";
+    let hint = escH(msg);
+    if(/permission-denied/.test(code)) hint = "Firestore Security Rules sizga o‘qish ruxsatini bermadi. Rules ichidagi ADMIN_UID (yoki admin claim) to‘g‘riligini tekshiring va Rules'ni Publish qiling.";
+    else if(/failed-precondition/.test(code)){
+      const m = /https:\/\/console\.firebase\.google\.com[^\s]*/.exec(msg);
+      hint = "Bu so‘rov uchun Firestore indeks kerak. " + (m ? `<a href="${escH(m[0])}" target="_blank" rel="noopener">Indeksni yaratish</a>` : "Console → Firestore → Indexes → Single field → chats → updatedAt → Collection group scope.");
+    }
+    return `<div class="adm-err"><b>⚠ Xatolik</b><div>${hint}</div></div>`;
+  }
+
+  async function adminInit(){
+    adminClaim = false;
+    const b = $("adminOpenBtn"); if(b) b.hidden = !admOk();
+  }
+  function adminTeardown(){
+    admClose(); adminClaim = false; adm.userMap = {}; adm.usersAll = null; adm.countCache = {};
+    const b = $("adminOpenBtn"); if(b) b.hidden = true;
+  }
+
+  async function admCount(kind, arg){
+    const key = kind + ":" + (arg || "");
+    if(key in adm.countCache) return adm.countCache[key];
+    const n = await fbApi.admin.count(kind, arg);
+    adm.countCache[key] = n; return n;
+  }
+  async function admGetUser(uid){
+    if(adm.userMap[uid]) return adm.userMap[uid];
+    let d = null;
+    try{ d = await fbApi.admin.getUser(uid); }catch(e){ d = null; }
+    adm.userMap[uid] = d || {};
+    return adm.userMap[uid];
+  }
+  async function admEnsureUsers(uids){ const need = [...new Set(uids)].filter(u => u && !adm.userMap[u]); await Promise.all(need.map(admGetUser)); }
+
+  function admMakePager(fetchPage){
+    return {
+      cursors: [null], page: 0, pages: 0, hasNext: false,
+      async go(n){
+        const res = await fetchPage(this.cursors[n - 1], ADM_PAGE + 1);
+        const more = res.length > ADM_PAGE; const items = res.slice(0, ADM_PAGE);
+        if(more) this.cursors[n] = items[ADM_PAGE - 1].snap;
+        this.page = n; this.pages = Math.max(this.pages, n); this.hasNext = more; return items;
+      }
+    };
+  }
+  function admPagerHtml(p){
+    if(!p || (p.pages <= 1 && !p.hasNext)) return "";
+    let b = "";
+    for(let i = 1; i <= p.pages; i++) b += `<button type="button" class="adm-pg${i === p.page ? " on" : ""}" data-pg="${i}">${i}</button>`;
+    if(p.hasNext) b += `<button type="button" class="adm-pg next" data-pg="${p.page + 1}">Next →</button>`;
+    return `<div class="adm-pager">${b}</div>`;
+  }
+
+  // Sahifalar steki: tab ildizi + ichma-ich (foydalanuvchi -> chat) sahifalar
+  function admRoot(){
+    const body = $("admBody"); body.innerHTML = ""; adm.depth = 0; adm.live = null; $("admBack").hidden = true;
+    const pg = document.createElement("div"); pg.className = "adm-page"; body.appendChild(pg); body.scrollTop = 0; return pg;
+  }
+  function admPush(){
+    const body = $("admBody"); const cur = body.lastElementChild; if(cur) cur.hidden = true;
+    const pg = document.createElement("div"); pg.className = "adm-page"; body.appendChild(pg);
+    adm.depth++; $("admBack").hidden = false; body.scrollTop = 0; return pg;
+  }
+  function admPop(){
+    if(adm.depth <= 0) return;
+    const body = $("admBody"); body.lastElementChild.remove(); adm.depth--;
+    const cur = body.lastElementChild; if(cur) cur.hidden = false;
+    $("admBack").hidden = adm.depth === 0;
+  }
+
+  /* ---- USERS ---- */
+  function admUserRow(u){
+    const d = u.data || {};
+    return `<button type="button" class="adm-row" data-user="${escH(u.id)}"><span class="adm-av">${admAvatar(d)}</span><span class="adm-meta"><b>👤 ${escH(admName(d))}</b><small>${escH(d.email || "—")}</small></span><span class="adm-count" data-cnt="${escH(u.id)}">…</span></button>`;
+  }
+  function admFillCounts(host){
+    host.querySelectorAll("[data-cnt]").forEach(el => {
+      const uid = el.getAttribute("data-cnt");
+      admCount("userChats", uid).then(n => { el.textContent = n + " chats"; }).catch(() => { el.textContent = "—"; });
+    });
+  }
+  async function admLoadAllUsers(){
+    if(adm.usersAll) return adm.usersAll;
+    let all = [], after = null;
+    while(all.length < 500){
+      const res = await fbApi.admin.users({ after, size: 100 });
+      all = all.concat(res);
+      if(res.length < 100) break;
+      after = res[res.length - 1].snap;
+    }
+    all.forEach(u => { adm.userMap[u.id] = u.data || {}; });
+    adm.usersAll = all; return all;
+  }
+  function admShowUsers(){
+    const pg = admRoot();
+    pg.innerHTML = `<label class="adm-search"><span>🔍</span><input type="search" class="adm-q" placeholder="Search users..." autocomplete="off"></label><div class="adm-list"></div><div class="adm-foot"></div>`;
+    const qI = pg.querySelector(".adm-q"), list = pg.querySelector(".adm-list"), foot = pg.querySelector(".adm-foot");
+    const newPager = () => admMakePager((after, size) => fbApi.admin.users({ after, size }));
+    let pager = newPager(), matches = null, mPage = 1, seq = 0;
+    const show = (items) => { list.innerHTML = items.length ? items.map(admUserRow).join("") : '<div class="adm-empty">Foydalanuvchi topilmadi</div>'; admFillCounts(list); };
+    async function loadPage(n){
+      const my = ++seq; list.innerHTML = '<div class="adm-loading">Yuklanmoqda…</div>';
+      try{
+        const items = await pager.go(n); if(my !== seq) return;
+        items.forEach(u => { adm.userMap[u.id] = u.data || {}; });
+        show(items); foot.innerHTML = admPagerHtml(pager);
+      }catch(e){ if(my !== seq) return; list.innerHTML = admErrHtml(e); foot.innerHTML = ""; }
+    }
+    function showMatches(){
+      const total = Math.ceil(matches.length / ADM_PAGE) || 1; mPage = Math.min(mPage, total);
+      show(matches.slice((mPage - 1) * ADM_PAGE, mPage * ADM_PAGE));
+      let b = ""; if(total > 1) for(let i = 1; i <= total; i++) b += `<button type="button" class="adm-pg${i === mPage ? " on" : ""}" data-pg="${i}">${i}</button>`;
+      foot.innerHTML = (b ? `<div class="adm-pager">${b}</div>` : "") + (adm.usersAll && adm.usersAll.length >= 500 ? '<div class="adm-note">Eng so‘nggi 500 foydalanuvchi ichidan qidirildi.</div>' : "");
+    }
+    const doSearch = admDebounce(async () => {
+      const q = qI.value.trim().toLowerCase();
+      if(!q){ matches = null; pager = newPager(); loadPage(1); return; }
+      const my = ++seq; list.innerHTML = '<div class="adm-loading">Qidirilmoqda…</div>'; foot.innerHTML = "";
+      try{
+        const all = await admLoadAllUsers(); if(my !== seq) return;
+        matches = all.filter(u => { const d = u.data || {}; return (d.displayName || "").toLowerCase().includes(q) || (d.email || "").toLowerCase().includes(q) || u.id.toLowerCase() === q; });
+        mPage = 1; showMatches();
+      }catch(e){ if(my !== seq) return; list.innerHTML = admErrHtml(e); }
+    }, 300);
+    qI.addEventListener("input", doSearch);
+    foot.addEventListener("click", (e) => { const b = e.target.closest("[data-pg]"); if(!b) return; const n = +b.dataset.pg; if(matches){ mPage = n; showMatches(); } else loadPage(n); });
+    adm.live = () => { adm.usersAll = null; if(!matches) loadPage(pager.page || 1); };
+    loadPage(1);
+  }
+
+  /* ---- CHATS (global yoki bitta foydalanuvchi) ---- */
+  function admChatRow(c, showUser){
+    const d = c.data || {}, u = adm.userMap[c.uid] || {};
+    const who = showUser ? `<small class="adm-who">👤 ${escH(admName(u))} · ${escH(u.email || c.uid || "")}</small>` : "";
+    const last = d.lastMessage ? `<em>${escH(String(d.lastMessage).slice(0, 110))}</em>` : "";
+    return `<button type="button" class="adm-row chat" data-chat="${escH(c.id)}" data-uid="${escH(c.uid || "")}"><span class="adm-meta"><b>${escH(d.title || "Yangi suhbat")}</b>${who}<small>${admNum(d.messageCount)} msg · ${escH(admDate(d.updatedAt))}</small>${last}</span><span class="adm-chev">›</span></button>`;
+  }
+  function admChatText(d){
+    let t = (d.title || "") + "\n" + (d.lastMessage || "");
+    try{ JSON.parse(d.messagesJson || "[]").forEach(m => { t += "\n" + (m.text || ""); }); }catch(e){ t += "\n" + (d.messagesJson || ""); }
+    return t.toLowerCase();
+  }
+  function admMatchChat(c, q){
+    const u = adm.userMap[c.uid] || {};
+    if(((u.displayName || "") + " " + (u.email || "") + " " + (c.uid || "")).toLowerCase().includes(q)) return true;
+    return admChatText(c.data || {}).includes(q);
+  }
+  function admMountChatList(host, uid){
+    const L = { q: "", from: 0, to: 0, pager: null, scan: null, seq: 0 };
+    const showUser = !uid;
+    host.innerHTML = `<div class="adm-filters"><label class="adm-search"><span>🔍</span><input type="search" class="adm-q" placeholder="${uid ? "Search this user’s conversations" : "Search conversations"}" autocomplete="off"></label><div class="adm-dates"><label>From<input type="date" class="adm-from"></label><label>To<input type="date" class="adm-to"></label></div>${uid ? "" : '<div class="adm-hint">Qidiruv: user name, email, chat title, message text</div>'}</div><div class="adm-list"></div><div class="adm-foot"></div>`;
+    const qI = host.querySelector(".adm-q"), fI = host.querySelector(".adm-from"), tI = host.querySelector(".adm-to");
+    const list = host.querySelector(".adm-list"), foot = host.querySelector(".adm-foot");
+    const dayStart = (v) => v ? new Date(v + "T00:00:00").getTime() : 0;
+    const dayEnd = (v) => v ? new Date(v + "T23:59:59.999").getTime() : 0;
+
+    async function loadPage(n){
+      const my = ++L.seq; list.innerHTML = '<div class="adm-loading">Yuklanmoqda…</div>';
+      try{
+        const items = await L.pager.go(n); if(my !== L.seq) return;
+        if(showUser) await admEnsureUsers(items.map(i => i.uid));
+        if(my !== L.seq) return;
+        list.innerHTML = items.length ? items.map(c => admChatRow(c, showUser)).join("") : '<div class="adm-empty">Suhbatlar topilmadi</div>';
+        foot.innerHTML = admPagerHtml(L.pager);
+      }catch(e){ if(my !== L.seq) return; list.innerHTML = admErrHtml(e); foot.innerHTML = ""; }
+    }
+    // Firestore'da to'liq matnli qidiruv yo'q: chatlar 50 tadan o'qilib brauzerda filtrlanadi (bir bosishda eng ko'pi 200 ta).
+    async function runScan(){
+      const my = ++L.seq, s = L.scan, q = L.q.toLowerCase();
+      foot.innerHTML = ""; if(!s.matches.length) list.innerHTML = '<div class="adm-loading">Qidirilmoqda…</div>';
+      try{
+        let batches = 0;
+        while(batches < 4 && !s.done){
+          const res = await fbApi.admin.chats({ uid, after: s.cursor, size: 50, from: L.from, to: L.to });
+          if(my !== L.seq) return;
+          if(!res.length){ s.done = true; break; }
+          s.cursor = res[res.length - 1].snap; if(res.length < 50) s.done = true;
+          if(showUser) await admEnsureUsers(res.map(r => r.uid));
+          if(my !== L.seq) return;
+          res.forEach(r => { s.scanned++; if(admMatchChat(r, q)) s.matches.push(r); });
+          batches++;
+        }
+        list.innerHTML = s.matches.length ? s.matches.map(c => admChatRow(c, showUser)).join("") : '<div class="adm-empty">Hech narsa topilmadi</div>';
+        foot.innerHTML = `<div class="adm-note">${admNum(s.scanned)} ta chat tekshirildi${s.done ? " (hammasi)" : ""}</div>` + (s.done ? "" : '<button type="button" class="adm-more">Yana qidirish</button>');
+      }catch(e){ if(my !== L.seq) return; list.innerHTML = admErrHtml(e); foot.innerHTML = ""; }
+    }
+    function refresh(){
+      if(L.q){ L.scan = { cursor: null, scanned: 0, matches: [], done: false }; runScan(); }
+      else { L.pager = admMakePager((after, size) => fbApi.admin.chats({ uid, after, size, from: L.from, to: L.to })); loadPage(1); }
+    }
+    L.reload = () => { if(!L.q && L.pager && L.pager.page === 1) loadPage(1); };
+    qI.addEventListener("input", admDebounce(() => { L.q = qI.value.trim(); refresh(); }, 350));
+    fI.addEventListener("change", () => { L.from = dayStart(fI.value); refresh(); });
+    tI.addEventListener("change", () => { L.to = dayEnd(tI.value); refresh(); });
+    foot.addEventListener("click", (e) => {
+      const pgb = e.target.closest("[data-pg]"); if(pgb){ loadPage(+pgb.dataset.pg); return; }
+      if(e.target.closest(".adm-more")) runScan();
+    });
+    refresh();
+    return L;
+  }
+  function admShowChats(){
+    const pg = admRoot(); const host = document.createElement("div"); pg.appendChild(host);
+    const L = admMountChatList(host, null); adm.live = () => L.reload();
+  }
+
+  /* ---- ACTIVITY ---- */
+  async function admShowActivity(){
+    const pg = admRoot();
+    pg.innerHTML = `<div class="adm-stats">${[["users", "Users"], ["chats", "Chats"], ["today", "Today"], ["active", "Active · 24h"]].map(([k, l]) => `<div class="adm-stat"><b data-s="${k}">…</b><span>${l}</span></div>`).join("")}</div><div class="adm-note-box"></div><h4 class="adm-h">Recent conversations</h4><div class="adm-list"></div>`;
+    const note = pg.querySelector(".adm-note-box"), list = pg.querySelector(".adm-list");
+    const midnight = new Date(); midnight.setHours(0, 0, 0, 0);
+    const jobs = {
+      users: () => admCount("users"),
+      chats: () => admCount("chats"),
+      today: () => admCount("chatsSince", midnight.getTime()),
+      active: () => admCount("activeUsers", Date.now() - 864e5)
+    };
+    let errShown = false;
+    Object.keys(jobs).forEach(k => {
+      jobs[k]().then(n => { const el = pg.querySelector(`[data-s="${k}"]`); if(el) el.textContent = admNum(n); })
+        .catch(e => { const el = pg.querySelector(`[data-s="${k}"]`); if(el) el.textContent = "—"; if(!errShown && note.isConnected){ errShown = true; note.innerHTML = admErrHtml(e); } });
+    });
+    try{
+      const res = await fbApi.admin.chats({ size: 10 });
+      await admEnsureUsers(res.map(r => r.uid));
+      if(!list.isConnected) return;
+      list.innerHTML = res.length ? res.map(c => admChatRow(c, true)).join("") : '<div class="adm-empty">Hali suhbatlar yo‘q</div>';
+    }catch(e){ if(list.isConnected) list.innerHTML = admErrHtml(e); }
+    adm.live = () => { admShowActivity(); };
+  }
+
+  /* ---- Foydalanuvchi profili va chatni o'qish (READ-ONLY) ---- */
+  async function admOpenUser(uid){
+    const pg = admPush(); pg.innerHTML = '<div class="adm-loading">Yuklanmoqda…</div>';
+    try{
+      const u = await admGetUser(uid);
+      const n = await admCount("userChats", uid).catch(() => null);
+      pg.innerHTML = `<div class="adm-card"><div class="adm-card-top"><span class="adm-av big">${admAvatar(u)}</span><div class="adm-meta"><b>${escH(admName(u))}</b><small>User Profile</small></div></div><dl class="adm-dl"><dt>Name</dt><dd>${escH(admName(u))}</dd><dt>Email</dt><dd>${escH(u.email || "—")}</dd><dt>UID</dt><dd class="mono">${escH(uid)}</dd><dt>Joined</dt><dd>${escH(admDate(u.createdAt))}</dd><dt>Last login</dt><dd>${escH(admDate(u.lastLogin))}</dd><dt>Chats</dt><dd>${admNum(n)}</dd></dl></div><h4 class="adm-h">💬 Conversations</h4><div class="adm-host"></div>`;
+      admMountChatList(pg.querySelector(".adm-host"), uid);
+    }catch(e){ pg.innerHTML = admErrHtml(e); }
+  }
+  async function admOpenChat(uid, id){
+    const pg = admPush(); pg.innerHTML = '<div class="adm-loading">Yuklanmoqda…</div>';
+    try{
+      const [d, u] = await Promise.all([fbApi.admin.getChat(uid, id), admGetUser(uid)]);
+      if(!d){ pg.innerHTML = '<div class="adm-empty">Chat topilmadi (o‘chirilgan bo‘lishi mumkin).</div>'; return; }
+      let msgs = []; try{ msgs = JSON.parse(d.messagesJson || "[]"); }catch(e){}
+      const thread = msgs.length ? msgs.map(m => {
+        const isUser = m.role === "user";
+        const txt = isUser ? `<div class="adm-txt pre">${escH(m.text || "")}</div>` : `<div class="adm-txt assistant-text">${renderMarkdownLite(m.text || "")}</div>`;
+        return `<div class="adm-msg ${isUser ? "user" : "ai"}"><div class="adm-role">${isUser ? "USER" : "MARYAM"}</div>${txt}</div>`;
+      }).join("") : '<div class="adm-empty">Xabarlar yo‘q</div>';
+      pg.innerHTML = `<div class="adm-chat-head"><span class="adm-av">${admAvatar(u)}</span><div class="adm-meta"><b>👤 ${escH(admName(u))}</b><small>${escH(u.email || uid)}</small></div><span class="adm-badge">READ-ONLY</span></div><h3 class="adm-title">“${escH(d.title || "Yangi suhbat")}”</h3><div class="adm-sub">${escH(admDate(d.createdAt))} → ${escH(admDate(d.updatedAt))} · ${admNum(msgs.length)} msg${d.model ? " · " + escH(d.model) : ""}${d.truncated ? " · uzun suhbat: eski xabarlar qisqartirilgan" : ""}</div><div class="adm-thread">${thread}</div>`;
+    }catch(e){ pg.innerHTML = admErrHtml(e); }
+  }
+
+  /* ---- Panel: ochish/yopish, realtime (bitta listener) ---- */
+  function admStartLive(){
+    if(adm.unsub || !fbApi || !fbApi.admin) return;
+    adm.firstSnap = true;
+    adm.unsub = fbApi.admin.watchNewest((ev) => {
+      if(ev.error){ console.warn("[Maryam][Admin] listener:", ev.error.code, ev.error.message); return; }
+      if(adm.firstSnap){ adm.firstSnap = false; return; }
+      if(ev.fromCache || ev.pending || !ev.changes) return;
+      clearTimeout(adm.liveTimer);
+      adm.liveTimer = setTimeout(() => { adm.countCache = {}; if(adm.depth === 0 && adm.live) adm.live(); }, 1500);
+    });
+  }
+  function admStopLive(){ clearTimeout(adm.liveTimer); if(adm.unsub){ try{ adm.unsub(); }catch(e){} adm.unsub = null; } }
+  function admSetTab(tab){
+    adm.tab = tab;
+    $("admTabs").querySelectorAll(".adm-tab").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
+    if(tab === "users") admShowUsers(); else if(tab === "chats") admShowChats(); else admShowActivity();
+  }
+  function admOpen(){
+    if(!admOk()) return;
+    $("admPanel").hidden = false; document.body.classList.add("adm-open");
+    closeSidebarMobile(); admSetTab(adm.tab || "users"); admStartLive();
+  }
+  function admClose(){
+    const p = $("admPanel"); if(p) p.hidden = true;
+    document.body.classList.remove("adm-open"); admStopLive();
+  }
+  $("adminOpenBtn").addEventListener("click", admOpen);
+  $("admClose").addEventListener("click", admClose);
+  $("admBack").addEventListener("click", admPop);
+  $("admTabs").addEventListener("click", (e) => { const b = e.target.closest(".adm-tab"); if(b) admSetTab(b.dataset.tab); });
+  $("admBody").addEventListener("click", async (e) => {
+    const cp = e.target.closest(".md-copy-btn");
+    if(cp){
+      const ok = await copyText(decodeURIComponent(cp.dataset.code || ""));
+      const l = cp.querySelector("span"); const o = l.textContent;
+      l.textContent = ok ? "Nusxalandi ✓" : "Nusxalab bo‘lmadi"; setTimeout(() => { l.textContent = o; }, 1300); return;
+    }
+    const u = e.target.closest("[data-user]"); if(u){ admOpenUser(u.dataset.user); return; }
+    const c = e.target.closest("[data-chat]"); if(c){ admOpenChat(c.dataset.uid, c.dataset.chat); }
+  });
+  document.addEventListener("keydown", (e) => {
+    if(e.key !== "Escape") return;
+    const p = $("admPanel"); if(!p || p.hidden) return;
+    if(adm.depth > 0) admPop(); else admClose();
+  });
+
   /* ---- Auth holati o'zgarganda ---- */
   async function onAuthUser(user){
     if(!user){
@@ -5172,6 +5647,7 @@ Mavzu/ko'rsatma: "${topic}"`;
       return;
     }
     if(currentUser && currentUser.uid === user.uid){ currentUser = pickUser(user); renderUserUI(); return; }
+    try{ adminTeardown(); }catch(e){}
     const seq = ++sessionSeq;
     setAuthState("loading", { text: "Google hisobingiz tekshirilmoqda..." });
     currentUser = pickUser(user);
@@ -5184,6 +5660,7 @@ Mavzu/ko'rsatma: "${topic}"`;
     renderUserUI();
     setAuthState("in");
     cloudBootstrap(seq);
+    adminInit();
   }
 
   /* ---- Ilova ishga tushishi ---- */
