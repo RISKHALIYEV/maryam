@@ -1262,6 +1262,7 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
   @media(prefers-reduced-motion:reduce){.ub-orb,.ub-orb u{animation:none}}
   .dsvg{width:100%;height:auto;background:#fff9;border-radius:10px}.fd{opacity:0;font-family:var(--script)}.ub-b.show .fd{animation:fi .6s forwards}@keyframes fi{to{opacity:1}}
   .ub-spd{margin-left:8px;border:0;border-radius:10px;background:#2a2e52;color:#fff;font-size:16px;padding:2px 8px}
+  .ub-st{display:flex;align-items:center;justify-content:space-between;margin:4px 0}.ub-st span{font-size:13px;opacity:.9}.ub-st button{border:0;border-radius:10px;background:#2a2e52;color:#fff;font-size:15px;padding:4px 12px}
 </style>
 </head>
 <body class="auth-loading">
@@ -6149,6 +6150,143 @@ Javobda faqat bitta fayl bloki va 1 qator izoh yoz.`;
 })();
 </script>
 <script>
+/* ===== MARYAM TTS — markaziy ovoz dvigateli (faqat brauzer speechSynthesis; kalit va pullik API yo'q) ===== */
+(function(){
+"use strict";
+const SS=window.speechSynthesis,KEY="maryam_tts_v1",AND=/Android/i.test(navigator.userAgent);
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,Number(v)||1));
+const cfg={on:true,rate:1,pitch:1,voice:""};
+try{Object.assign(cfg,JSON.parse(localStorage.getItem(KEY)||"{}"));}catch(e){}
+cfg.rate=clamp(cfg.rate,.7,1.3);cfg.pitch=clamp(cfg.pitch,.8,1.2);cfg.voice=String(cfg.voice||"").slice(0,200);cfg.on=cfg.on!==false;
+const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify({on:cfg.on,rate:cfg.rate,pitch:cfg.pitch,voice:cfg.voice}));}catch(e){}};
+let act=!!(navigator.userActivation&&navigator.userActivation.hasBeenActive);
+["pointerdown","touchend","keydown","click"].forEach(n=>addEventListener(n,()=>{act=true;},{capture:true,passive:true}));
+/* ---- ovozlar ---- */
+let voices=[];const VL=new Set();
+const load=()=>{try{voices=(SS&&SS.getVoices())||[];}catch(e){voices=[];}return voices;};
+if(SS&&SS.addEventListener)SS.addEventListener("voiceschanged",()=>{load();VL.forEach(f=>{try{f();}catch(e){}});});
+function ready(ms){return new Promise(res=>{if(load().length||!SS)return res(voices);let n=0;const iv=setInterval(()=>{if(load().length||++n*250>=(ms||2000)){clearInterval(iv);res(voices);}},250);});}
+const norm=l=>String(l||"").replace("_","-").toLowerCase(),LC={uz:"uz-UZ",ru:"ru-RU",en:"en-US"};
+const FB={uz:["uz","tr","kk","az","tk","ky","ru","en"],ru:["ru","uk","bg","en"],en:["en"]};
+function pick(lang,pref){
+  const V=load();if(!V.length)return null;
+  pref=pref||cfg.voice;if(pref){const v=V.find(x=>x.voiceURI===pref||x.name===pref);if(v)return v;}
+  for(const p of FB[lang]||[lang,"en"]){const m=V.filter(x=>norm(x.lang).split("-")[0]===p);if(m.length)return m.find(x=>norm(x.lang)===norm(LC[p]))||m.find(x=>x.localService)||m[0];}
+  return V.find(x=>x.default)||V[0];
+}
+function detect(t){t=String(t||"");const c=(t.match(/[\u0400-\u04FF]/g)||[]).length;if(c>t.length*.3)return"ru";return(t.match(/\b(the|and|is|of|to|that|with)\b/gi)||[]).length>3?"en":"uz";}
+/* ---- matn tozalash ---- */
+const MW={uz:{plus:"plus",minus:"minus",eq:"teng",sq:"kvadrat",cube:"kub",pow:"darajasi",mul:"ko'paytirish",div:"bo'lingan",root:"ildiz",pi:"pi",le:"kichik yoki teng",ge:"katta yoki teng",ne:"teng emas",deg:"daraja",pct:"foiz"},
+ru:{plus:"плюс",minus:"минус",eq:"равно",sq:"в квадрате",cube:"в кубе",pow:"в степени",mul:"умножить на",div:"разделить на",root:"корень из",pi:"пи",le:"меньше или равно",ge:"больше или равно",ne:"не равно",deg:"градусов",pct:"процентов"},
+en:{plus:"plus",minus:"minus",eq:"equals",sq:"squared",cube:"cubed",pow:"to the power of",mul:"times",div:"divided by",root:"square root of",pi:"pi",le:"less than or equal to",ge:"greater than or equal to",ne:"not equal to",deg:"degrees",pct:"percent"}};
+function math(s,lang){
+  const w=MW[lang]||MW.uz,L="(?<=\\d|\\b[A-Za-z]|[)\\]])",R="(?=\\d|[A-Za-z]\\b|[(\\[])",sp=x=>" "+x+" ";
+  return s.replace(/\\frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g,"$1"+sp(w.div)+"$2").replace(/\\sqrt\s*\{([^{}]*)\}/g,sp(w.root)+"$1")
+   .replace(/\\(?:cdot|times)\b/g,sp(w.mul)).replace(/\\pi\b/g,sp(w.pi)).replace(/\\le(?:q)?\b/g,sp(w.le)).replace(/\\ge(?:q)?\b/g,sp(w.ge)).replace(/\\ne(?:q)?\b/g,sp(w.ne)).replace(/\\[a-zA-Z]+/g," ").replace(/[{}$]/g," ")
+   .replace(/²/g,sp(w.sq)).replace(/³/g,sp(w.cube)).replace(/\^\s*2\b/g,sp(w.sq)).replace(/\^\s*3\b/g,sp(w.cube)).replace(/\^\s*\(?(-?\w+)\)?/g,sp(w.pow)+"$1 ")
+   .replace(/√/g,sp(w.root)).replace(/π/g,sp(w.pi)).replace(/≤/g,sp(w.le)).replace(/≥/g,sp(w.ge)).replace(/≠/g,sp(w.ne)).replace(/[×·]/g,sp(w.mul)).replace(/÷/g,sp(w.div))
+   .replace(/=/g,sp(w.eq)).replace(new RegExp(L+"\\s*\\+\\s*"+R,"g"),sp(w.plus)).replace(new RegExp(L+"\\s+[-−–]\\s+"+R,"g"),sp(w.minus)).replace(/(?<=\b[A-Za-z])[-−](?=\d)/g,sp(w.minus))
+   .replace(new RegExp(L+"\\s*\\*\\s*"+R,"g"),sp(w.mul)).replace(new RegExp(L+"\\s*\\/\\s*"+R,"g"),sp(w.div)).replace(/%/g,sp(w.pct)).replace(/°/g,sp(w.deg));
+}
+function clean(t,lang){
+  let s=String(t==null?"":t);lang=lang||detect(s);
+  s=s.replace(/```[\s\S]*?```/g," ").replace(/```[\s\S]*$/," ").replace(/<(script|style)[\s\S]*?<\/\1>/gi," ").replace(/<[^>]+>/g," ")
+   .replace(/\{[^{}]*"[^{}"]*"\s*:[^{}]*\}/g," ").replace(/\{[^{}]*"[^{}"]*"\s*:[^{}]*\}/g," ").replace(/\[\s*(?:\{[^\]]*\}\s*,?\s*)+\]/g," ")
+   .replace(/https?:\/\/\S+|www\.\S+/g," ").replace(/!\[[^\]]*\]\([^)]*\)/g," ").replace(/\[([^\]]+)\]\([^)]*\)/g,"$1")
+   .replace(/\[\d{1,3}(?:[,\s-]+\d{1,3})*\]/g," ").replace(/【[^】]*】/g," ").replace(/`([^`\n]{1,40})`/g,"$1").replace(/`[^`]*`/g," ")
+   .replace(/^\s{0,3}#{1,6}\s*/gm,"").replace(/^\s*[>•*+-]\s+/gm,"").replace(/^\s*\d+[.)]\s+/gm,"").replace(/[*~|]{1,3}/g,"").replace(/(?<=\s|^)_+|_+(?=\s|$)/g,"")
+   .replace(/[\u{1F000}-\u{1FFFF}\u{2190}-\u{21FF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu," ");
+  s=s.split("\n").filter(l=>!/^\s*[\[{}\]]|[{};]\s*$|=>|^\s*(const|let|var|function|import|export|return|class|def)\b/.test(l)).join("\n");
+  return math(s,lang).replace(/[ \t]+/g," ").replace(/\s*\n\s*/g,"\n").trim();
+}
+function pieces(sn){const r=[];let c="";for(const w of sn.split(/\s+/)){if(c&&(c+" "+w).length>170){r.push(c);c=w;}else c=c?c+" "+w:w;}if(c)r.push(c);return r;}
+function chunks(s){
+  const out=[];
+  for(const para of s.split(/\n+/)){let cur="";
+    for(const sent of para.split(/(?<=[.!?…;:])\s+/)){for(const p of(sent.length>170?pieces(sent):[sent])){if(!p)continue;if(cur&&(cur+" "+p).length>170){out.push(cur);cur=p;}else cur=cur?cur+" "+p:p;}}
+    if(cur)out.push(cur);}
+  return out;
+}
+/* ---- dvigatel ---- */
+const st={state:"idle",sess:0,keep:[],chunks:[],idx:0,opts:{},key:"",at:0,res:null,lang:"uz",native:false};
+const LS=new Set();
+function set(s){if(st.state!==s){st.state=s;LS.forEach(f=>{try{f(s,st.key);}catch(e){}});}}
+function hardStop(){st.sess++;try{SS&&SS.cancel();}catch(e){}st.keep=[];const r=st.res;st.res=null;st.native=false;set("idle");if(r)r({ok:false,cancelled:true});}
+function run(my,res){
+  st.res=res;const o=st.opts;let retries=0;
+  const fail=r=>{if(my!==st.sess)return;st.res=null;set("idle");o.onerror&&o.onerror(r);res({ok:false,reason:r});};
+  const next=()=>{
+    if(my!==st.sess)return;
+    if(st.idx>=st.chunks.length){st.res=null;set("idle");o.onend&&o.onend();return res({ok:true});}
+    const u=new SpeechSynthesisUtterance(st.chunks[st.idx]),v=pick(st.lang,o.voice);
+    u.lang=LC[st.lang]||"uz-UZ";if(v){try{u.voice=v;u.lang=v.lang;}catch(e){}}
+    u.rate=clamp((o.rate||1)*cfg.rate,.5,2);u.pitch=cfg.pitch;u.volume=1;
+    let started=false,done=false;
+    const retry=r=>{done=true;clearTimeout(wd);if(my!==st.sess)return;if(retries++<2){try{SS.cancel();}catch(e){}setTimeout(()=>{if(my===st.sess)next();},150*retries);}else fail(r);};
+    const wd=setTimeout(()=>{if(!started&&!done)retry("start-timeout");},1800);
+    u.onstart=()=>{started=true;clearTimeout(wd);if(my!==st.sess)return;set("speaking");if(!o._s){o._s=1;o.onstart&&o.onstart();}};
+    u.onend=()=>{if(done)return;done=true;clearTimeout(wd);if(my!==st.sess)return;retries=0;st.idx++;o.onchunk&&o.onchunk(st.idx,st.chunks.length);next();};
+    u.onerror=ev=>{if(done)return;const er=ev&&ev.error;if(er==="canceled"||er==="interrupted"){done=true;clearTimeout(wd);return;}retry(er||"error");};
+    st.keep.push(u);if(st.keep.length>6)st.keep.shift();
+    try{SS.resume();}catch(e){}
+    try{SS.speak(u);}catch(e){retry("speak-throw");}
+  };
+  next();
+}
+async function speak(text,o){
+  o=o||{};
+  if(!SS||typeof SpeechSynthesisUtterance==="undefined"){o.onerror&&o.onerror("unsupported");return{ok:false,reason:"unsupported"};}
+  if(!cfg.on&&!o.force)return{ok:true,skipped:true};
+  if(!act&&!(navigator.userActivation&&navigator.userActivation.hasBeenActive))return{ok:false,reason:"gesture"};
+  const lang=o.lang||detect(text),t=o.raw?String(text||"").trim():clean(text,lang);
+  if(!t)return{ok:true,empty:true};
+  const key=o.key||t.slice(0,80)+"#"+t.length;
+  if(st.state==="speaking"&&st.key===key&&Date.now()-st.at<1000)return{ok:true,dup:true};
+  hardStop();const my=st.sess;st.key=key;st.at=Date.now();st.opts=o;st.lang=lang;st.chunks=chunks(t);st.idx=0;
+  await ready(2000);if(my!==st.sess)return{ok:false,cancelled:true};
+  return new Promise(res=>run(my,res));
+}
+function pause(){
+  if(st.state!=="speaking")return;
+  if(AND||!SS.pause){const r=st.res;st.sess++;try{SS.cancel();}catch(e){}st.res=r;st.keep=[];st.native=false;}else{try{SS.pause();}catch(e){}st.native=true;}
+  set("paused");
+}
+function resume(){
+  if(st.state!=="paused")return;
+  if(st.native){try{SS.resume();}catch(e){}st.native=false;set("speaking");return;}
+  const r=st.res;if(!r){set("idle");return;}set("speaking");run(++st.sess,r);
+}
+function toggle(text,o,key){
+  if(st.key===key){if(st.state==="speaking")return pause();if(st.state==="paused")return resume();}
+  o=Object.assign({},o,{key:key});return speak(text,o);
+}
+const API={speak,speakText:speak,stop:hardStop,pause,resume,toggle,clean,detect,chunks,pick,cfg,
+  state:()=>st.state,key:()=>st.key,voices:()=>load().slice(),ready,
+  on:f=>{LS.add(f);return()=>LS.delete(f);},onVoices:f=>{VL.add(f);return()=>VL.delete(f);},
+  set:(k,v)=>{if(k==="on")cfg.on=!!v;else if(k==="rate")cfg.rate=clamp(v,.7,1.3);else if(k==="pitch")cfg.pitch=clamp(v,.8,1.2);else if(k==="voice")cfg.voice=String(v||"").slice(0,200);persist();},
+  info:lang=>{const V=load();if(!SS)return"Brauzer ovozni qo'llamaydi.";if(!V.length)return"Ovoz topilmadi: Android Sozlamalar → Til → Matndan nutqqa → Google ovozini o'rnating.";const v=pick(lang||"uz");return"Ovozlar: "+V.length+" · tanlandi: "+(v?v.name+" ("+v.lang+")":"standart");}};
+window.MaryamTTS=API;window.speakText=speak;
+addEventListener("pagehide",()=>{try{SS&&SS.cancel();}catch(e){}});
+/* ---- chat: har bir AI javobiga 🔊 tugmasi (asosiy kodga tegmasdan) ---- */
+function domText(el){const c=el.cloneNode(true);c.querySelectorAll(".md-codeblock,pre,button,svg,script,style").forEach(n=>n.remove());c.querySelectorAll(".katex").forEach(k=>{const a=k.querySelector("annotation");k.replaceWith(document.createTextNode(" "+(a?a.textContent:"")+" "));});c.querySelectorAll("p,li,div,br,.md-heading").forEach(n=>n.after(document.createTextNode("\n")));return c.textContent;}
+let cid=0;
+function wire(){
+  const root=document.getElementById("messagesInner");if(!root)return;
+  const add=()=>root.querySelectorAll(".msg-feedback-bar:not(.user-align):not([data-tts])").forEach(bar=>{
+    bar.dataset.tts="1";const blk=bar.previousElementSibling;if(!blk||!blk.classList.contains("assistant-block"))return;
+    const b=document.createElement("button");b.type="button";b.className="feedback-btn tts-btn";b.title="Ovoz bilan o'qish";b.setAttribute("aria-label","Ovoz bilan o'qish");b.textContent="🔊";
+    const key="chat:"+(++cid);b.dataset.key=key;
+    b.addEventListener("click",()=>{const el=blk.querySelector(".assistant-text");if(el)toggle(domText(el),{},key);});
+    bar.appendChild(b);
+  });
+  new MutationObserver(add).observe(root,{childList:true});add();
+}
+API.on((s,k)=>document.querySelectorAll(".tts-btn").forEach(b=>{b.textContent=b.dataset.key===k?(s==="speaking"?"⏸":s==="paused"?"▶":"🔊"):"🔊";}));
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",wire);else wire();
+})();
+</script>
+
+<script>
 /* ===== AI USTOZ — alohida blok: mavjud Maryam kodiga tegmaydi, faqat window.MaryamFBApi'dan foydalanadi ===== */
 (function(){
 "use strict";
@@ -6201,7 +6339,7 @@ async function home(){
   '<div class="ust-row"><select id="uS">'+opt(SUBJ)+'</select><select id="uL">'+opt(LEVEL,"7–9-sinf")+'</select><select id="uG">'+Object.keys(LANGS).map(k=>'<option value="'+k+'">'+LANGS[k][0]+'</option>').join("")+'</select></div>'+
   '<div class="ust-sm">Savollar soni</div><div class="ust-row" id="uN">'+[10,20,30].map(n=>'<button type="button" class="ust-chip'+(S.n===n?" on":"")+'" data-n="'+n+'">'+n+'</button>').join("")+'</div>'+
   '<div class="ust-sm">Qiyinlik</div><div class="ust-row" id="uD">'+["Oson","O'rta","Qiyin"].map(n=>'<button type="button" class="ust-chip'+(S.diff===n?" on":"")+'" data-d="'+n+'">'+n+'</button>').join("")+'</div>'+
-  '<button class="ust-btn" data-act="lesson">🎓 Interaktiv dars (6 bosqich)</button><button class="ust-btn alt" data-act="test">📝 Mavzu bo\'yicha test</button><button class="ust-btn alt" data-act="cards">🗂 Kartochkalar</button></div><div class="ust-card"><button class="ust-btn alt" data-act="vtest">🔊 Ovozni tekshirish</button><div class="ust-sm" id="uVs"></div></div>';
+  '<button class="ust-btn" data-act="lesson">🎓 Interaktiv dars (6 bosqich)</button><button class="ust-btn alt" data-act="test">📝 Mavzu bo\'yicha test</button><button class="ust-btn alt" data-act="cards">🗂 Kartochkalar</button></div><div class="ust-card"><h3 style="font-size:22px">🔊 Ovoz sozlamalari</h3><button type="button" class="ust-chip'+(MaryamTTS.cfg.on?" on":"")+'" id="uOn" data-act="ttsOn" style="width:100%">'+(MaryamTTS.cfg.on?"Ovoz: YOQILGAN":"Ovoz: O\'CHIRILGAN")+'</button><label class="ust-sm">Tezlik: <b id="uRv">'+MaryamTTS.cfg.rate+'</b></label><input type="range" id="uRt" min="0.7" max="1.3" step="0.05" value="'+MaryamTTS.cfg.rate+'" style="width:100%"><label class="ust-sm">Pitch: <b id="uPv">'+MaryamTTS.cfg.pitch+'</b></label><input type="range" id="uPt" min="0.8" max="1.2" step="0.05" value="'+MaryamTTS.cfg.pitch+'" style="width:100%"><label class="ust-sm">Ovoz tanlash</label><select id="uVo"></select><button class="ust-btn alt" data-act="vtest">▶ Ovozni sinab ko\'rish</button><div class="ust-sm" id="uVs"></div></div>';fillVoices();
   if(api&&uid){try{const p=await api.getDoc([...base(),"progress","last"]);const el=$("ustLast");if(p&&p.title&&el)el.innerHTML='<div class="ust-card"><div class="ust-sm">Oxirgi darsingiz</div><b>'+esc(p.title)+' — '+esc(p.step)+'/'+esc(p.total)+'</b><button class="ust-btn" data-act="resume">▶ Davom etish</button></div>';}catch(e){}}
 }
 /* ---------- interaktiv dars ---------- */
@@ -6236,7 +6374,7 @@ async function lesson(topic){
   }
   if(g!==gen)return;
   if(!d){toast("AI javobi noto'g'ri — oddiy dars ko'rsatildi");}
-  cur={d:normLesson(d,topic),i:0,topic:topic};
+  cur={d:normLesson(d,topic),i:0,topic:topic,gate:true};
   save("lessons",String(Date.now()),{title:cur.d.title,topic:topic,data:JSON.stringify(cur.d).slice(0,200000)});
   step(0);
 }
@@ -6287,10 +6425,13 @@ function elHtml(e,k){
 let SPD=0;try{SPD=Math.min(2,Math.max(0,+localStorage.getItem('ustSpd')||0));}catch(e){}
 const SPD_M=[1.8,1.3,1],SPD_R=[0.8,0.95,1.1],SPD_I=['🐢','🚶','🐇'],SM=()=>SPD_M[SPD];
 let tm=[],play=true,snd=true;
+const GR={uz:t=>"Bugun "+t+" mavzusini birgalikda o'rganamiz.",ru:t=>"Сегодня мы вместе изучим тему: "+t+".",en:t=>"Today we will learn "+t+" together."};
+function greet(){return(GR[val("uG")||"uz"]||GR.uz)(cur.d.title||cur.topic);}
+function begin(){if(!cur||!cur.gate)return;cur.gate=false;play=true;setPP();const tok=cur.tok=(cur.tok||0)+1,a=$("uA");if(a)a.innerHTML="";speak(greet(),()=>{if(cur&&cur.tok===tok&&play)go(0);});}
 const task=s=>(s.el||[]).find(b=>b&&b.type==='task');
 const T=ms=>window.__ustFast?ms/25:ms;
 function clr(){tm.forEach(clearTimeout);tm=[];if(cur)cur.tok=(cur.tok||0)+1;}
-function mood(m,ms){const o=$("uO");if(!o)return;o.className="ub-orb "+m;if(ms)tm.push(setTimeout(()=>{const x=$("uO");if(x&&x.classList.contains(m))x.className="ub-orb idle";},ms));}
+function mood(m,ms){const o=$("uO");if(!o)return;o.className="ub-orb "+m;const sv=$("uSt");if(sv)sv.textContent=MOODS[m]||(play?"▶ Dars davom etmoqda":"⏸ Pauza");if(ms)tm.push(setTimeout(()=>{const x=$("uO");if(x&&x.classList.contains(m))x.className="ub-orb idle";},ms));}
 function setPP(){const b=body().querySelector(".pp");if(b)b.textContent=play?"⏸":"▶";}
 function step(i){
   stopVoice();clr();const L=cur.d,s=L.steps[i],n=L.steps.length;cur.i=i;cur.k=0;cur.wq=null;
@@ -6300,11 +6441,12 @@ function step(i){
   body().innerHTML='<div class="ub"><div class="ub-top"><button type="button" data-act="home" aria-label="Orqaga">←</button><div class="ub-t"><b>'+esc(L.title||cur.topic)+'</b><span>'+(i+1)+'-qadam / '+n+'</span></div><button type="button" data-act="list" aria-label="Qadamlar">⊞</button></div>'+
   '<div class="ub-cv" id="uCv">'+items.map((e,k)=>'<div class="ub-b" data-k="'+k+'" style="--d:'+Math.min(4,(.6+String(e.text||e.formula||"").length*.035)*SM()/1.3).toFixed(2)+'s">'+elHtml(e,k)+'</div>').join("")+'<div class="ub-orb idle" id="uO"><b class="eyes"><u></u><u></u></b><s></s><i></i></div></div>'+
   '<div class="ub-sh"><div class="ub-sub" id="uSub">'+esc(play?cur.sents[0]:s.voice)+'</div><div id="uA"></div><div class="ub-seg">'+L.steps.map((_,k)=>'<i data-go="'+k+'" class="'+(k<i?"d":k===i?"on":"")+'"></i>').join("")+'<span>'+(i+1)+' / '+n+'</span><button type="button" class="ub-spd" data-act="spd" aria-label="Tezlik">'+SPD_I[SPD]+'</button></div>'+
-  '<div class="ub-ctl"><button type="button" data-act="list" aria-label="Bosqichlar">☰</button><button type="button" data-act="replay" aria-label="Qayta">↶</button><button type="button" class="pp" data-act="pp" aria-label="Play/Pauza">'+(play?"⏸":"▶")+'</button><button type="button" data-act="snd" aria-label="Ovoz">'+(snd?"🔊":"🔇")+'</button><button type="button" data-act="share" aria-label="Ulashish">↗</button></div>'+
+  '<div class="ub-st"><span id="uSt">'+(play?"💤 Tayyor":"⏸ Pauza")+'</span><button type="button" data-act="stopv" aria-label="To\'xtatish">⏹</button></div><div class="ub-ctl"><button type="button" data-act="list" aria-label="Bosqichlar">☰</button><button type="button" data-act="replay" aria-label="Qayta">↶</button><button type="button" class="pp" data-act="pp" aria-label="Play/Pauza">'+(play?"⏸":"▶")+'</button><button type="button" data-act="snd" aria-label="Ovoz">'+(snd?"🔊":"🔇")+'</button><button type="button" data-act="share" aria-label="Ulashish">↗</button></div>'+
   '<div class="ust-ask"><input class="ust-in" id="uQ" placeholder="'+(tk?"Javobingni yoz...":"Yana so\'rang...")+'"><button type="button" data-act="mic" aria-label="Gapirish">🎙</button><button type="button" data-act="'+(tk?"check":"ask")+'" aria-label="Yuborish">➤</button></div>'+(tk?'<button class="ust-btn alt" data-act="ask">❓ Savol berish</button>':"")+'</div></div>';
   save("progress","last",{title:L.title||cur.topic,topic:cur.topic,step:i+1,total:n});
   save("lessons","cur",{title:L.title||cur.topic,topic:cur.topic,data:JSON.stringify(L).slice(0,200000)});
-  if(play)go(0);else body().querySelectorAll(".ub-b").forEach(e=>e.classList.add("show"));
+  if(cur.gate&&snd){const a=$("uA");if(a)a.innerHTML='<button class="ust-btn" data-act="begin">▶ Darsni boshlash</button>';const sb=$("uSub");if(sb)sb.textContent=greet();}
+  else{cur.gate=false;if(play)go(0);else body().querySelectorAll(".ub-b").forEach(e=>e.classList.add("show"));}
 }
 function pen(el){const o=$("uO"),cv=$("uCv");if(!o||!el||!cv)return;const r=el.getBoundingClientRect(),c=cv.getBoundingClientRect();o.style.left=Math.max(4,Math.min(r.right-c.left,c.width-52))+"px";o.style.top=(r.bottom-c.top+cv.scrollTop-22)+"px";el.scrollIntoView({block:"nearest",behavior:"smooth"});}
 function go(k){
@@ -6312,7 +6454,7 @@ function go(k){
   if(k>=N){if(task(cur.d.steps[cur.i])){const a=$("uA");if(a)a.innerHTML='<div class="ust-card">✍ Mashqni bajaring: javobni yozing yoki 🎙 bilan ayting.</div>';mood("idle");}else tm.push(setTimeout(adv,T(1500*SM())));return;}
   const el=body().querySelector('.ub-b[data-k="'+k+'"]'),it=cur.items[k];
   if(el){el.classList.add("show");pen(el);}
-  const sub=$("uSub"),txt=q[k]||"";if(sub&&txt)sub.textContent=txt;
+  const sub=$("uSub"),txt=q[k]||(it&&/^(formula|highlight)$/.test(it.type)?String(it.text||it.formula||""):"");if(sub&&txt)sub.textContent=txt;
   if(it&&it.type==="question"){cur.wq=k;if(snd&&txt)speak(txt);return;}
   let done=false;const nx=()=>{if(done||!cur||cur.tok!==tok)return;done=true;go(k+1);};
   if(snd&&txt){speak(txt,()=>tm.push(setTimeout(nx,T(500*SM()))));tm.push(setTimeout(nx,T(txt.length*140*SM()/1.3+4000)));}
@@ -6349,36 +6491,30 @@ async function check(){
     if(!$("uA"))return;const ok=r.correct===true||r.correct==="true";mood(ok?"correct":"wrong",3000);
     $("uA").innerHTML='<div class="ust-card"><b>'+(ok?"✅ To'g'ri!":"❌ Hali emas")+'</b><p>'+esc(r.feedback)+'</p>'+(!ok&&r.hint?'<p class="ust-sm">💡 '+esc(r.hint)+'</p>':"")+'<button class="ust-btn" data-act="adv">'+(cur.i<L.steps.length-1?"Davom etish →":"Yakunlash")+'</button></div>';
     save("results",String(Date.now()),{topic:cur.topic,kind:"mashq",correct:ok,step:cur.i+1});
-    speak((ok?"To'g'ri! ":"")+(r.feedback||""));
+    const i0=cur.i;speak((ok?"To'g'ri! ":"")+(r.feedback||""),()=>{if(ok&&cur&&cur.i===i0&&!cur.gate&&$("uA"))adv();});
   }catch(e){if($("uA"))$("uA").innerHTML='<div class="ust-card ust-err">'+esc(e.message)+'</div>';}
 }
 /* ---------- ovoz (bepul Web Speech API) ---------- */
-let aud=null,voices=[];
-function loadV(){try{voices=speechSynthesis.getVoices()||[];}catch(e){}}
-function pickV(code){const c=code.toLowerCase(),p=c.slice(0,2);return voices.find(v=>String(v.lang).replace("_","-").toLowerCase()===c)||voices.find(v=>String(v.lang).toLowerCase().startsWith(p));}
-function stopVoice(){try{speechSynthesis.cancel();}catch(e){}try{window.TTS&&typeof TTS.stop==='function'&&TTS.stop();}catch(e){}try{rec&&rec.stop();}catch(e){}rec=null;if(aud){aud.onended=aud.onerror=null;try{aud.pause();}catch(e){}aud=null;}}
-let eng="";
+const MOODS={speaking:"🔊 Tushuntiryapman",listening:"🎙️ Tinglayapman",thinking:"🤔 O'ylayapman",correct:"✅ To'g'ri",wrong:"❌ Xato",celebrate:"🎉 Barakalla"};
+function greetT(){return"Salom! Men Maryam ustoziman.";}
+function fillVoices(){const el=$("uVo");if(!el)return;const V=MaryamTTS.voices();el.innerHTML='<option value="">Avtomatik (uz → ru → en)</option>'+V.map(v=>'<option value="'+esc(v.voiceURI||v.name)+'">'+esc(v.name+" ("+v.lang+")")+'</option>').join("");el.value=MaryamTTS.cfg.voice||"";}
+function stopVoice(){try{MaryamTTS.stop();}catch(e){}try{rec&&rec.stop();}catch(e){}rec=null;}
 function speak(t,cb){
-  if(!t){cb&&cb();return;}stopVoice();loadV();eng="";
-  const code=LANGS[val("uG")||"uz"][1],sp=SPD_R[SPD];let fin=false;
+  if(!t){cb&&cb();return;}
   const o=$("uO");if(o&&o.classList.contains("idle"))mood("speaking");
-  const end=()=>{if(fin)return;fin=true;const q=$("uO");if(q&&q.classList.contains("speaking"))mood("idle");cb&&cb();};
-  const log=x=>{eng+=(eng?" → ":"")+x;};
-  const browser=v=>{log("brauzer ovozi"+(v?" ("+v.lang+")":""));if(!("speechSynthesis"in window))return end();const u=new SpeechSynthesisUtterance(t);u.lang=v?v.lang:code;u.rate=sp;if(v)u.voice=v;u.onend=end;u.onerror=end;speechSynthesis.speak(u);};
-  const web=()=>{const v="speechSynthesis"in window?pickV(code):null;if(v)return browser(v);
-    try{log("Google audio");aud=new Audio("https://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&tl="+code.slice(0,2)+"&q="+encodeURIComponent(t.slice(0,190)));aud.playbackRate=sp;aud.onended=end;aud.onerror=()=>{aud=null;browser(null);};const pr=aud.play();pr&&pr.catch&&pr.catch(()=>{aud=null;browser(null);});}catch(e){browser(null);}};
-  if(window.TTS&&typeof TTS.speak==="function"){log("Cordova TTS ("+code+")");try{TTS.speak({text:t,locale:code,rate:sp},end,()=>{log("ishlamadi");web();});return;}catch(e){log("xato");}}
-  web();
+  MaryamTTS.speak(t,{lang:val("uG")||"uz",rate:SPD_R[SPD],key:"u"+Date.now()+Math.random()}).then(r=>{
+    const q=$("uO");if(q&&q.classList.contains("speaking"))mood("idle");
+    if(r&&!r.cancelled&&(r.skipped||r.reason||r.empty)){tm.push(setTimeout(()=>cb&&cb(r),T(Math.max(1800,String(t).length*65)*SM()/1.3)));if(r.reason==="gesture")toast("Ovoz uchun avval ekranni bosing");}
+    else cb&&cb(r);
+  });
 }
 function mic(){
   const code=LANGS[val("uG")||"uz"][1],fill=t=>{if($("uQ")&&t){$("uQ").value=t;(cur&&cur.d&&task(cur.d.steps[cur.i])?check:ask)();}};
-  const P=window.plugins&&window.plugins.speechRecognition;
-  if(P){mood("listening");const run=()=>P.startListening(r=>{mood("idle");fill(r&&r[0]);},()=>{mood("idle");toast("Mikrofon xatosi");},{language:code,matches:1,showPopup:false});P.hasPermission(h=>h?run():P.requestPermission(run,()=>{mood("idle");toast("Mikrofon ruxsati berilmadi");}),run);return;}
-  const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R)return toast("APK'da mikrofon uchun cordova-plugin-speechrecognition kerak");
-  if(rec){stopVoice();return;}
-  rec=new R();rec.lang=code;rec.interimResults=false;
+  const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R)return toast("Brauzer mikrofonni qo'llamaydi (Chrome kerak)");
+  if(rec){stopVoice();mood("idle");return;}
+  stopVoice();rec=new R();rec.lang=code;rec.interimResults=false;
   rec.onresult=e=>fill(e.results[0][0].transcript);
-  rec.onend=()=>{rec=null;mood("idle");};rec.onerror=()=>{rec=null;mood("idle");};try{rec.start();mood("listening");toast("🎙 Gapiring...");}catch(e){rec=null;}
+  rec.onend=()=>{rec=null;mood("idle");};rec.onerror=()=>{rec=null;mood("idle");};try{rec.start();mood("listening");toast("🎙 Gapiring...");}catch(e){rec=null;mood("idle");}
 }
 /* ---------- test ---------- */
 async function test(topic,diff){
@@ -6448,8 +6584,11 @@ function onClick(e){
     case"list":{const e=body().querySelector(".ub-ls");if(e)return e.remove();body().querySelector(".ub").insertAdjacentHTML("beforeend",'<div class="ub-ls">'+cur.d.steps.map((q,k)=>'<button type="button" class="ust-opt" data-go="'+k+'">'+(k+1)+'. '+esc(q.title)+'</button>').join("")+'</div>');return;}
     case"replay":return step(cur.i);
     case"pp":play=!play;if(play)go(cur.k||0);else{clr();stopVoice();mood("idle");}t.textContent=play?"⏸":"▶";return;
-    case"vtest":{const el=$("uVs");el.textContent="Tekshirilmoqda...";speak("Salom! Men Maryam ustoziman.");setTimeout(()=>{el.innerHTML="Ishlatilgan: <b>"+esc(eng||"hech biri")+"</b><br>Eshitilmasa: APK uchun <code>cordova plugin add cordova-plugin-tts</code> va telefonda Google TTS ovozini o\'rnating.";},2500);return;}
+    case"vtest":{const el=$("uVs");el.textContent="Tekshirilmoqda...";MaryamTTS.speak(greetT(),{lang:val("uG")||"uz",force:true,key:"test"+Date.now()}).then(r=>{if($("uVs"))$("uVs").textContent=(r&&r.reason==="gesture"?"Avval ekranni bosing. ":(r&&r.reason?"Xato: "+r.reason+". ":""))+MaryamTTS.info(val("uG")||"uz");});return;}
+    case"ttsOn":MaryamTTS.set("on",!MaryamTTS.cfg.on);t.textContent=MaryamTTS.cfg.on?"Ovoz: YOQILGAN":"Ovoz: O'CHIRILGAN";t.classList.toggle("on",MaryamTTS.cfg.on);return;
     case"spd":SPD=(SPD+1)%3;t.textContent=SPD_I[SPD];try{localStorage.setItem("ustSpd",SPD);}catch(e){}return;
+    case"stopv":play=false;clr();stopVoice();setPP();mood("idle");return;
+    case"begin":return begin();
     case"snd":snd=!snd;if(!snd)stopVoice();t.textContent=snd?"🔊":"🔇";return;
     case"share":{const L=cur.d,tx=L.title+"\n"+L.steps.map((q,k)=>(k+1)+". "+q.title+": "+q.voice).join("\n");if(navigator.share)navigator.share({title:L.title,text:tx}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(tx).then(()=>toast("Nusxalandi"),()=>{});return;}
     case"finish":return test(cur.topic,S.diff);case"ask":return ask();case"check":return check();case"adv":return adv();case"mic":return mic();
@@ -6463,7 +6602,7 @@ function onClick(e){
 }
 async function resume(){
   load("Dars yuklanmoqda...");
-  try{const d=await api.getDoc([...base(),"lessons","cur"]),p=await api.getDoc([...base(),"progress","last"]);if(!d||!d.data)throw new Error("Saqlangan dars topilmadi");cur={d:normLesson(JSON.parse(d.data),d.topic||""),i:0,topic:d.topic};step(Math.min(Math.max((p&&p.step||1)-1,0),cur.d.steps.length-1));}catch(e){fail(e,"home");}
+  try{const d=await api.getDoc([...base(),"lessons","cur"]),p=await api.getDoc([...base(),"progress","last"]);if(!d||!d.data)throw new Error("Saqlangan dars topilmadi");cur={d:normLesson(JSON.parse(d.data),d.topic||""),i:0,topic:d.topic,gate:true};step(Math.min(Math.max((p&&p.step||1)-1,0),cur.d.steps.length-1));}catch(e){fail(e,"home");}
 }
 function open(){$("ustPanel").classList.add("on");const s=$("sidebarClose");if(s&&getComputedStyle(s).display!=="none")s.click();home();}
 function close(){stopVoice();clr();gen++;$("ustPanel").classList.remove("on");}
@@ -6472,8 +6611,10 @@ function init(){
   $("ustClose").addEventListener("click",close);$("ustHome").addEventListener("click",home);body().addEventListener("click",onClick);
   body().addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="uQ")(cur&&cur.d&&task(cur.d.steps[cur.i])?check():ask());});
   if(window.MaryamFBReady)window.MaryamFBReady.then(r=>{if(r&&r.ok){api=r.api;api.onAuthChanged(u=>{uid=u?u.uid:null;if(!u)close();});}}).catch(()=>{});
-  loadV();try{speechSynthesis.onvoiceschanged=loadV;}catch(e){}
-  window.__ust={parseJSON,compile,graph,pickV:c=>pickV(c)};
+  MaryamTTS.onVoices(fillVoices);MaryamTTS.ready(2000).then(fillVoices);
+  body().addEventListener("input",e=>{if(e.target.id==='uRt'){MaryamTTS.set('rate',e.target.value);$('uRv').textContent=MaryamTTS.cfg.rate;}if(e.target.id==='uPt'){MaryamTTS.set('pitch',e.target.value);$('uPv').textContent=MaryamTTS.cfg.pitch;}});
+  body().addEventListener("change",e=>{if(e.target.id==='uVo')MaryamTTS.set('voice',e.target.value);});
+  window.__ust={parseJSON,compile,graph};
 }
 init();
 })();
