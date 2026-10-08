@@ -1260,6 +1260,8 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
   .ub-seg i{cursor:pointer}.ub .ust-opt:disabled{opacity:.9}
   @media(min-width:760px){.ub{inset:16px auto 16px 50%;width:520px;margin-left:-260px;border-radius:26px;overflow:hidden;box-shadow:0 30px 80px #0008}}
   @media(prefers-reduced-motion:reduce){.ub-orb,.ub-orb u{animation:none}}
+  .dsvg{width:100%;height:auto;background:#fff9;border-radius:10px}.fd{opacity:0;font-family:var(--script)}.ub-b.show .fd{animation:fi .6s forwards}@keyframes fi{to{opacity:1}}
+  .ub-spd{margin-left:8px;border:0;border-radius:10px;background:#2a2e52;color:#fff;font-size:16px;padding:2px 8px}
 </style>
 </head>
 <body class="auth-loading">
@@ -6199,7 +6201,7 @@ async function home(){
   '<div class="ust-row"><select id="uS">'+opt(SUBJ)+'</select><select id="uL">'+opt(LEVEL,"7–9-sinf")+'</select><select id="uG">'+Object.keys(LANGS).map(k=>'<option value="'+k+'">'+LANGS[k][0]+'</option>').join("")+'</select></div>'+
   '<div class="ust-sm">Savollar soni</div><div class="ust-row" id="uN">'+[10,20,30].map(n=>'<button type="button" class="ust-chip'+(S.n===n?" on":"")+'" data-n="'+n+'">'+n+'</button>').join("")+'</div>'+
   '<div class="ust-sm">Qiyinlik</div><div class="ust-row" id="uD">'+["Oson","O'rta","Qiyin"].map(n=>'<button type="button" class="ust-chip'+(S.diff===n?" on":"")+'" data-d="'+n+'">'+n+'</button>').join("")+'</div>'+
-  '<button class="ust-btn" data-act="lesson">🎓 Interaktiv dars (6 bosqich)</button><button class="ust-btn alt" data-act="test">📝 Mavzu bo\'yicha test</button><button class="ust-btn alt" data-act="cards">🗂 Kartochkalar</button></div>';
+  '<button class="ust-btn" data-act="lesson">🎓 Interaktiv dars (6 bosqich)</button><button class="ust-btn alt" data-act="test">📝 Mavzu bo\'yicha test</button><button class="ust-btn alt" data-act="cards">🗂 Kartochkalar</button></div><div class="ust-card"><button class="ust-btn alt" data-act="vtest">🔊 Ovozni tekshirish</button><div class="ust-sm" id="uVs"></div></div>';
   if(api&&uid){try{const p=await api.getDoc([...base(),"progress","last"]);const el=$("ustLast");if(p&&p.title&&el)el.innerHTML='<div class="ust-card"><div class="ust-sm">Oxirgi darsingiz</div><b>'+esc(p.title)+' — '+esc(p.step)+'/'+esc(p.total)+'</b><button class="ust-btn" data-act="resume">▶ Davom etish</button></div>';}catch(e){}}
 }
 /* ---------- interaktiv dars ---------- */
@@ -6224,7 +6226,7 @@ function normLesson(d,topic){
   }).filter(s=>s.el.length);
   return steps.length?{title:String(d.title||topic),steps}:fallbackLesson(topic);
 }
-const LPROMPT='6 bosqichli interaktiv dars yarat: 1 Kirish, 2 Asosiy formula/qoida, 3 Misol, 4 Grafik/diagramma, 5 Muhim qoida, 6 Mashq. Har bosqich: {"title":"","voice":"3-5 qisqa gap, har gap bitta elementga mos, nuqta bilan tugasin","elements":[...]}. Element turlari: heading,text,handwriting,formula(LaTeX: y = ax^2 + bx + c),highlight,circle,arrow,line,rectangle,graph({"function":"x^2","xmin":-5,"xmax":5}),chart({"data":[{"label":"","value":1}]}),table({"headers":[],"rows":[[]]}),timeline({"items":[{"year":"","text":""}]}),question({"text":"","options":["","","",""],"answer":0,"explain":""}),tip,warning,code. Har elementda "type" va "text". Oxirgi bosqichda {"type":"task","text":"mashq sharti","answer":"to\'g\'ri javob"} bo\'lsin. Faqat mavzuga mos elementlarni ishlat (graph faqat funksiya bo\'lsa). JSON: {"title":"","steps":[...]}. Aynan 6 bosqich.';
+const LPROMPT='6 bosqichli interaktiv dars yarat: 1 Kirish, 2 Asosiy formula/qoida, 3 Misol, 4 Grafik/diagramma, 5 Muhim qoida, 6 Mashq. Har bosqich: {"title":"","voice":"3-5 qisqa gap, har gap bitta elementga mos, nuqta bilan tugasin","elements":[...]}. Element turlari: heading,text,handwriting,formula(LaTeX: y = ax^2 + bx + c),highlight,circle,arrow,line,rectangle,graph({"function":"x^2","xmin":-5,"xmax":5}),chart({"data":[{"label":"","value":1}]}),table({"headers":[],"rows":[[]]}),timeline({"items":[{"year":"","text":""}]}),question({"text":"","options":["","","",""],"answer":0,"explain":""}),tip,warning,code,draw({"shapes":[{"t":"circle","x":150,"y":100,"r":40,"color":"#2457c5"},{"t":"rect","x":10,"y":10,"w":60,"h":40},{"t":"line","x1":0,"y1":0,"x2":50,"y2":50},{"t":"arrow","x1":0,"y1":0,"x2":50,"y2":50},{"t":"poly","points":[[10,10],[60,10],[35,50]]},{"t":"text","x":20,"y":30,"text":""}],"text":"chizma izohi"} — 300x200 koordinata; hujayra, geometriya, fizika, anatomiya chizmalari uchun, 4-12 shakl). Har elementda "type" va "text". Oxirgi bosqichda {"type":"task","text":"mashq sharti","answer":"to\'g\'ri javob"} bo\'lsin. Faqat mavzuga mos elementlarni ishlat (graph faqat funksiya bo\'lsa). JSON: {"title":"","steps":[...]}. Aynan 6 bosqich.';
 const isJ=e=>/JSON|Unexpected|position|token/i.test(String(e&&e.message));
 async function lesson(topic){
   topic=topic||val("uT");if(!topic)return toast("Avval mavzuni yozing");
@@ -6243,6 +6245,21 @@ function deco(p,x){return'<div class="w deco"><svg viewBox="0 0 300 60" fill="no
 function chart(e){const D=(e.data||e.items||[]).filter(d=>d&&isFinite(d.value)).slice(0,8);if(!D.length)return"";const m=Math.max(...D.map(d=>+d.value))||1,w=300/D.length;return'<div class="w"><svg viewBox="0 0 300 150">'+D.map((d,i)=>{const h=Math.max(2,+d.value/m*100);return'<rect class="bar" x="'+(i*w+8)+'" y="'+(125-h)+'" width="'+(w-16)+'" height="'+h+'" rx="4" fill="#2457c5" style="animation-delay:'+(i*.15)+'s"/><text x="'+(i*w+w/2)+'" y="142" font-size="11" text-anchor="middle" fill="#2E2A1E">'+esc(String(d.label||"").slice(0,9))+'</text><text x="'+(i*w+w/2)+'" y="'+(119-h)+'" font-size="11" text-anchor="middle" fill="#2457c5">'+esc(d.value)+'</text>';}).join("")+'</svg></div>';}
 function tbl(e){const R=(e.rows||[]).slice(0,8),H=e.headers||[];if(!R.length)return"";return'<div class="w"><table class="tb">'+(H.length?'<tr>'+H.map(h=>'<th>'+sup(h)+'</th>').join("")+'</tr>':"")+R.map(r=>'<tr>'+[].concat(r).map(c=>'<td>'+sup(c)+'</td>').join("")+'</tr>').join("")+'</table></div>';}
 function tline(e){const I=(e.items||[]).slice(0,8);if(!I.length)return"";return'<div class="w tl">'+I.map(i=>'<div><b>'+sup(i.year||i.date||i.label||"")+'</b> '+sup(i.text||i.event||(typeof i==="string"?i:""))+'</div>').join("")+'</div>';}
+function drawSvg(e){
+  const S=(e.shapes||[]).slice(0,30);if(!S.length)return"";
+  const n=v=>{v=+v;return isFinite(v)?Math.max(-50,Math.min(350,v)):0;},col=c=>/^#[0-9a-f]{3,8}$/i.test(c||"")||/^[a-z]{3,12}$/i.test(c||"")?c:"#2457c5";let i=0;
+  const out=S.map(s=>{if(!s)return"";const d=' style="animation-delay:'+(i++*.35).toFixed(2)+'s"',c=col(s.color||s.c),t=s.t||s.type,a=' class="dr" pathLength="1" stroke="'+c+'"'+d;
+    switch(t){
+      case"circle":return'<circle'+a+' cx="'+n(s.x)+'" cy="'+n(s.y)+'" r="'+(Math.abs(n(s.r))||20)+'"/>';
+      case"ellipse":return'<ellipse'+a+' cx="'+n(s.x)+'" cy="'+n(s.y)+'" rx="'+(Math.abs(n(s.rx))||30)+'" ry="'+(Math.abs(n(s.ry))||20)+'"/>';
+      case"rect":return'<rect'+a+' x="'+n(s.x)+'" y="'+n(s.y)+'" width="'+(Math.abs(n(s.w))||40)+'" height="'+(Math.abs(n(s.h))||30)+'" rx="3"/>';
+      case"line":return'<path'+a+' d="M'+n(s.x1)+' '+n(s.y1)+'L'+n(s.x2)+' '+n(s.y2)+'"/>';
+      case"arrow":{const x1=n(s.x1),y1=n(s.y1),x2=n(s.x2),y2=n(s.y2),g=Math.atan2(y2-y1,x2-x1),h=(r)=>(x2-10*Math.cos(g+r)).toFixed(1)+' '+(y2-10*Math.sin(g+r)).toFixed(1);return'<path'+a+' d="M'+x1+' '+y1+'L'+x2+' '+y2+'M'+h(.5)+'L'+x2+' '+y2+'L'+h(-.5)+'"/>';}
+      case"poly":case"polygon":{const P=(s.points||[]).slice(0,20).map(p=>n(p[0])+' '+n(p[1]));return P.length>1?'<path'+a+' d="M'+P.join("L")+(t==="poly"||t==="polygon"?"Z":"")+'"/>':"";}
+      case"text":return'<text class="fd" x="'+n(s.x)+'" y="'+n(s.y)+'" font-size="'+Math.min(26,+s.size||16)+'" fill="'+c+'" stroke="none"'+d+'>'+esc(s.text)+'</text>';
+    }return"";}).join("");
+  return'<div class="w"><svg viewBox="0 0 300 200" class="dsvg" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="'+esc(e.text||"chizma")+'">'+out+'</svg>'+(e.text?'<div class="ex">'+sup(e.text)+'</div>':"")+'</div>';
+}
 function elHtml(e,k){
   if(!e)return"";const x=e.text!=null?e.text:(e.formula||e.q||"");
   switch(e.type){
@@ -6256,6 +6273,7 @@ function elHtml(e,k){
     case"line":return deco('M8 30C70 14 120 46 180 28S270 22 292 30',x);
     case"rectangle":return'<div class="w rect">'+sup(x)+'</div>';
     case"graph":return'<div class="w">'+graph(e.function||e.fn||x,e.xmin,e.xmax)+'</div>';
+    case"draw":case"drawing":case"diagram":return drawSvg(e);
     case"chart":return chart(e);case"table":return tbl(e);case"timeline":return tline(e);
     case"tip":return'<div class="w tip">💡 '+sup(x)+'</div>';
     case"warning":return'<div class="w warn">⚠ '+sup(x)+'</div>';
@@ -6266,6 +6284,8 @@ function elHtml(e,k){
   }
   return"";
 }
+let SPD=0;try{SPD=Math.min(2,Math.max(0,+localStorage.getItem('ustSpd')||0));}catch(e){}
+const SPD_M=[1.8,1.3,1],SPD_R=[0.8,0.95,1.1],SPD_I=['🐢','🚶','🐇'],SM=()=>SPD_M[SPD];
 let tm=[],play=true,snd=true;
 const task=s=>(s.el||[]).find(b=>b&&b.type==='task');
 const T=ms=>window.__ustFast?ms/25:ms;
@@ -6278,8 +6298,8 @@ function step(i){
   cur.sents=String(s.voice||"").split(/(?<=[.!?…])\s+/).filter(Boolean);if(!cur.sents.length)cur.sents=[String(s.title||"")];
   const tk=task(s);
   body().innerHTML='<div class="ub"><div class="ub-top"><button type="button" data-act="home" aria-label="Orqaga">←</button><div class="ub-t"><b>'+esc(L.title||cur.topic)+'</b><span>'+(i+1)+'-qadam / '+n+'</span></div><button type="button" data-act="list" aria-label="Qadamlar">⊞</button></div>'+
-  '<div class="ub-cv" id="uCv">'+items.map((e,k)=>'<div class="ub-b" data-k="'+k+'" style="--d:'+Math.min(2.6,.6+String(e.text||e.formula||"").length*.035).toFixed(2)+'s">'+elHtml(e,k)+'</div>').join("")+'<div class="ub-orb idle" id="uO"><b class="eyes"><u></u><u></u></b><s></s><i></i></div></div>'+
-  '<div class="ub-sh"><div class="ub-sub" id="uSub">'+esc(play?cur.sents[0]:s.voice)+'</div><div id="uA"></div><div class="ub-seg">'+L.steps.map((_,k)=>'<i data-go="'+k+'" class="'+(k<i?"d":k===i?"on":"")+'"></i>').join("")+'<span>'+(i+1)+' / '+n+'</span></div>'+
+  '<div class="ub-cv" id="uCv">'+items.map((e,k)=>'<div class="ub-b" data-k="'+k+'" style="--d:'+Math.min(4,(.6+String(e.text||e.formula||"").length*.035)*SM()/1.3).toFixed(2)+'s">'+elHtml(e,k)+'</div>').join("")+'<div class="ub-orb idle" id="uO"><b class="eyes"><u></u><u></u></b><s></s><i></i></div></div>'+
+  '<div class="ub-sh"><div class="ub-sub" id="uSub">'+esc(play?cur.sents[0]:s.voice)+'</div><div id="uA"></div><div class="ub-seg">'+L.steps.map((_,k)=>'<i data-go="'+k+'" class="'+(k<i?"d":k===i?"on":"")+'"></i>').join("")+'<span>'+(i+1)+' / '+n+'</span><button type="button" class="ub-spd" data-act="spd" aria-label="Tezlik">'+SPD_I[SPD]+'</button></div>'+
   '<div class="ub-ctl"><button type="button" data-act="list" aria-label="Bosqichlar">☰</button><button type="button" data-act="replay" aria-label="Qayta">↶</button><button type="button" class="pp" data-act="pp" aria-label="Play/Pauza">'+(play?"⏸":"▶")+'</button><button type="button" data-act="snd" aria-label="Ovoz">'+(snd?"🔊":"🔇")+'</button><button type="button" data-act="share" aria-label="Ulashish">↗</button></div>'+
   '<div class="ust-ask"><input class="ust-in" id="uQ" placeholder="'+(tk?"Javobingni yoz...":"Yana so\'rang...")+'"><button type="button" data-act="mic" aria-label="Gapirish">🎙</button><button type="button" data-act="'+(tk?"check":"ask")+'" aria-label="Yuborish">➤</button></div>'+(tk?'<button class="ust-btn alt" data-act="ask">❓ Savol berish</button>':"")+'</div></div>';
   save("progress","last",{title:L.title||cur.topic,topic:cur.topic,step:i+1,total:n});
@@ -6289,14 +6309,14 @@ function step(i){
 function pen(el){const o=$("uO"),cv=$("uCv");if(!o||!el||!cv)return;const r=el.getBoundingClientRect(),c=cv.getBoundingClientRect();o.style.left=Math.max(4,Math.min(r.right-c.left,c.width-52))+"px";o.style.top=(r.bottom-c.top+cv.scrollTop-22)+"px";el.scrollIntoView({block:"nearest",behavior:"smooth"});}
 function go(k){
   const q=cur.sents||[],N=Math.max(cur.items.length,q.length);cur.k=k;const tok=cur.tok=(cur.tok||0)+1;
-  if(k>=N){if(task(cur.d.steps[cur.i])){const a=$("uA");if(a)a.innerHTML='<div class="ust-card">✍ Mashqni bajaring: javobni yozing yoki 🎙 bilan ayting.</div>';mood("idle");}else tm.push(setTimeout(adv,T(1500)));return;}
+  if(k>=N){if(task(cur.d.steps[cur.i])){const a=$("uA");if(a)a.innerHTML='<div class="ust-card">✍ Mashqni bajaring: javobni yozing yoki 🎙 bilan ayting.</div>';mood("idle");}else tm.push(setTimeout(adv,T(1500*SM())));return;}
   const el=body().querySelector('.ub-b[data-k="'+k+'"]'),it=cur.items[k];
   if(el){el.classList.add("show");pen(el);}
   const sub=$("uSub"),txt=q[k]||"";if(sub&&txt)sub.textContent=txt;
   if(it&&it.type==="question"){cur.wq=k;if(snd&&txt)speak(txt);return;}
   let done=false;const nx=()=>{if(done||!cur||cur.tok!==tok)return;done=true;go(k+1);};
-  if(snd&&txt){speak(txt,nx);tm.push(setTimeout(nx,T(txt.length*140+4000)));}
-  else tm.push(setTimeout(nx,T(Math.max(1500,txt.length*65))));
+  if(snd&&txt){speak(txt,()=>tm.push(setTimeout(nx,T(500*SM()))));tm.push(setTimeout(nx,T(txt.length*140*SM()/1.3+4000)));}
+  else tm.push(setTimeout(nx,T(Math.max(1800,txt.length*65)*SM()/1.3)));
 }
 function adv(){const n=cur.d.steps.length;if(cur.i<n-1)return step(cur.i+1);mood("celebrate",4000);const a=$("uA");if(a)a.innerHTML='<div class="ust-card"><b>Dars tugadi 🎉</b><button class="ust-btn" data-act="finish">📝 Mini-test yechish</button><button class="ust-btn alt" data-act="replay">↶ Qayta ko\'rish</button></div>';}
 function answerQ(t){
@@ -6313,7 +6333,7 @@ async function ask(){
   play=false;clr();stopVoice();setPP();mood("thinking");const box=$("uA"),g=gen;
   box.innerHTML='<div class="ust-card"><div class="ust-sk"></div><div class="ust-sk" style="width:60%"></div></div>';
   try{
-    const r=await ai('Dars: "'+L.title+'". Bosqich '+(cur.i+1)+': "'+s.title+'". Talaba savoli: "'+q+'". Qisqa tushuntir, noto\'g\'ri tushunchani aniqla. Kerak bo\'lsa doskaga qo\'shimcha elementlar yarat (formula/text/graph/tip/circle). JSON: {"answer":"","misconception":"","elements":[{"type":"formula","text":"..."}],"goBackTo":null yoki bosqich raqami 1..'+L.steps.length+'}');
+    const r=await ai('Dars: "'+L.title+'". Bosqich '+(cur.i+1)+': "'+s.title+'". Talaba savoli: "'+q+'". Qisqa tushuntir, noto\'g\'ri tushunchani aniqla. Kerak bo\'lsa doskaga qo\'shimcha elementlar yarat (formula/text/graph/tip/circle/draw). JSON: {"answer":"","misconception":"","elements":[{"type":"formula","text":"..."}],"goBackTo":null yoki bosqich raqami 1..'+L.steps.length+'}');
     if(g!==gen||!$("uA"))return;
     const gb=Number(r.goBackTo),ex=(Array.isArray(r.elements)?r.elements:[]).map(normEl).filter(e=>e&&e.type!=="question"&&e.type!=="task").slice(0,4);cur.say=r.answer;
     const cv=$("uCv");cv.insertAdjacentHTML("beforeend",'<div class="ub-b show" style="--d:1.2s;margin-top:14px"><div class="w ex">❓ '+esc(q)+'</div><div class="w tx">'+sup(r.answer)+'</div>'+ex.map(e=>elHtml(e,-1)).join("")+(r.misconception?'<div class="w warn">⚠ '+sup(r.misconception)+'</div>':"")+'</div>');
@@ -6336,20 +6356,28 @@ async function check(){
 let aud=null,voices=[];
 function loadV(){try{voices=speechSynthesis.getVoices()||[];}catch(e){}}
 function pickV(code){const c=code.toLowerCase(),p=c.slice(0,2);return voices.find(v=>String(v.lang).replace("_","-").toLowerCase()===c)||voices.find(v=>String(v.lang).toLowerCase().startsWith(p));}
-function stopVoice(){try{speechSynthesis.cancel();}catch(e){}try{rec&&rec.stop();}catch(e){}rec=null;if(aud){aud.onended=aud.onerror=null;try{aud.pause();}catch(e){}aud=null;}}
+function stopVoice(){try{speechSynthesis.cancel();}catch(e){}try{window.TTS&&typeof TTS.stop==='function'&&TTS.stop();}catch(e){}try{rec&&rec.stop();}catch(e){}rec=null;if(aud){aud.onended=aud.onerror=null;try{aud.pause();}catch(e){}aud=null;}}
+let eng="";
 function speak(t,cb){
-  if(!t){cb&&cb();return;}stopVoice();loadV();
-  const code=LANGS[val("uG")||"uz"][1];let fin=false;const o=$("uO");if(o&&o.classList.contains("idle"))mood("speaking");const end=()=>{if(fin)return;fin=true;const q=$("uO");if(q&&q.classList.contains("speaking"))mood("idle");cb&&cb();};
-  const browser=v=>{if(!("speechSynthesis"in window))return end();const u=new SpeechSynthesisUtterance(t);u.lang=v?v.lang:code;if(v)u.voice=v;u.onend=end;u.onerror=end;speechSynthesis.speak(u);};
-  const v="speechSynthesis"in window?pickV(code):null;
-  if(v)return browser(v);
-  try{aud=new Audio("https://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&tl="+code.slice(0,2)+"&q="+encodeURIComponent(t.slice(0,190)));aud.onended=end;aud.onerror=()=>{aud=null;browser(null);};const pr=aud.play();pr&&pr.catch&&pr.catch(()=>{aud=null;browser(null);});}catch(e){browser(null);}
+  if(!t){cb&&cb();return;}stopVoice();loadV();eng="";
+  const code=LANGS[val("uG")||"uz"][1],sp=SPD_R[SPD];let fin=false;
+  const o=$("uO");if(o&&o.classList.contains("idle"))mood("speaking");
+  const end=()=>{if(fin)return;fin=true;const q=$("uO");if(q&&q.classList.contains("speaking"))mood("idle");cb&&cb();};
+  const log=x=>{eng+=(eng?" → ":"")+x;};
+  const browser=v=>{log("brauzer ovozi"+(v?" ("+v.lang+")":""));if(!("speechSynthesis"in window))return end();const u=new SpeechSynthesisUtterance(t);u.lang=v?v.lang:code;u.rate=sp;if(v)u.voice=v;u.onend=end;u.onerror=end;speechSynthesis.speak(u);};
+  const web=()=>{const v="speechSynthesis"in window?pickV(code):null;if(v)return browser(v);
+    try{log("Google audio");aud=new Audio("https://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&tl="+code.slice(0,2)+"&q="+encodeURIComponent(t.slice(0,190)));aud.playbackRate=sp;aud.onended=end;aud.onerror=()=>{aud=null;browser(null);};const pr=aud.play();pr&&pr.catch&&pr.catch(()=>{aud=null;browser(null);});}catch(e){browser(null);}};
+  if(window.TTS&&typeof TTS.speak==="function"){log("Cordova TTS ("+code+")");try{TTS.speak({text:t,locale:code,rate:sp},end,()=>{log("ishlamadi");web();});return;}catch(e){log("xato");}}
+  web();
 }
 function mic(){
-  const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R)return toast("Brauzer mikrofonni qo'llamaydi");
+  const code=LANGS[val("uG")||"uz"][1],fill=t=>{if($("uQ")&&t){$("uQ").value=t;(cur&&cur.d&&task(cur.d.steps[cur.i])?check:ask)();}};
+  const P=window.plugins&&window.plugins.speechRecognition;
+  if(P){mood("listening");const run=()=>P.startListening(r=>{mood("idle");fill(r&&r[0]);},()=>{mood("idle");toast("Mikrofon xatosi");},{language:code,matches:1,showPopup:false});P.hasPermission(h=>h?run():P.requestPermission(run,()=>{mood("idle");toast("Mikrofon ruxsati berilmadi");}),run);return;}
+  const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R)return toast("APK'da mikrofon uchun cordova-plugin-speechrecognition kerak");
   if(rec){stopVoice();return;}
-  rec=new R();rec.lang=LANGS[val("uG")||"uz"][1];rec.interimResults=false;
-  rec.onresult=e=>{const t=e.results[0][0].transcript;if($("uQ")){$("uQ").value=t;ask();}};
+  rec=new R();rec.lang=code;rec.interimResults=false;
+  rec.onresult=e=>fill(e.results[0][0].transcript);
   rec.onend=()=>{rec=null;mood("idle");};rec.onerror=()=>{rec=null;mood("idle");};try{rec.start();mood("listening");toast("🎙 Gapiring...");}catch(e){rec=null;}
 }
 /* ---------- test ---------- */
@@ -6420,6 +6448,8 @@ function onClick(e){
     case"list":{const e=body().querySelector(".ub-ls");if(e)return e.remove();body().querySelector(".ub").insertAdjacentHTML("beforeend",'<div class="ub-ls">'+cur.d.steps.map((q,k)=>'<button type="button" class="ust-opt" data-go="'+k+'">'+(k+1)+'. '+esc(q.title)+'</button>').join("")+'</div>');return;}
     case"replay":return step(cur.i);
     case"pp":play=!play;if(play)go(cur.k||0);else{clr();stopVoice();mood("idle");}t.textContent=play?"⏸":"▶";return;
+    case"vtest":{const el=$("uVs");el.textContent="Tekshirilmoqda...";speak("Salom! Men Maryam ustoziman.");setTimeout(()=>{el.innerHTML="Ishlatilgan: <b>"+esc(eng||"hech biri")+"</b><br>Eshitilmasa: APK uchun <code>cordova plugin add cordova-plugin-tts</code> va telefonda Google TTS ovozini o\'rnating.";},2500);return;}
+    case"spd":SPD=(SPD+1)%3;t.textContent=SPD_I[SPD];try{localStorage.setItem("ustSpd",SPD);}catch(e){}return;
     case"snd":snd=!snd;if(!snd)stopVoice();t.textContent=snd?"🔊":"🔇";return;
     case"share":{const L=cur.d,tx=L.title+"\n"+L.steps.map((q,k)=>(k+1)+". "+q.title+": "+q.voice).join("\n");if(navigator.share)navigator.share({title:L.title,text:tx}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(tx).then(()=>toast("Nusxalandi"),()=>{});return;}
     case"finish":return test(cur.topic,S.diff);case"ask":return ask();case"check":return check();case"adv":return adv();case"mic":return mic();
