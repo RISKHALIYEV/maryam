@@ -6155,7 +6155,7 @@ Javobda faqat bitta fayl bloki va 1 qator izoh yoz.`;
 "use strict";
 const SS=window.speechSynthesis,KEY="maryam_tts_v1",AND=/Android/i.test(navigator.userAgent);
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,Number(v)||1));
-const cfg={on:true,rate:1,pitch:1,voice:""};
+const cfg={on:true,rate:.9,pitch:1,voice:""};
 try{Object.assign(cfg,JSON.parse(localStorage.getItem(KEY)||"{}"));}catch(e){}
 cfg.rate=clamp(cfg.rate,.7,1.3);cfg.pitch=clamp(cfg.pitch,.8,1.2);cfg.voice=String(cfg.voice||"").slice(0,200);cfg.on=cfg.on!==false;
 const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify({on:cfg.on,rate:cfg.rate,pitch:cfg.pitch,voice:cfg.voice}));}catch(e){}};
@@ -6167,10 +6167,13 @@ const load=()=>{try{voices=(SS&&SS.getVoices())||[];}catch(e){voices=[];}return 
 if(SS&&SS.addEventListener)SS.addEventListener("voiceschanged",()=>{load();VL.forEach(f=>{try{f();}catch(e){}});});
 function ready(ms){return new Promise(res=>{if(load().length||!SS)return res(voices);let n=0;const iv=setInterval(()=>{if(load().length||++n*250>=(ms||2000)){clearInterval(iv);res(voices);}},250);});}
 const norm=l=>String(l||"").replace("_","-").toLowerCase(),LC={uz:"uz-UZ",ru:"ru-RU",en:"en-US"};
+const isUz=v=>!!v&&(norm(v.lang).split("-")[0]==="uz"||/uzbek|o.?zbek|madina|sardor/i.test(v.name||""));
+const fam=v=>{if(!v)return"uz";if(isUz(v))return"uz";const p=norm(v.lang).split("-")[0];return["tr","az","tk","kk","ky"].includes(p)?"tr":p==="ru"||p==="uk"||p==="bg"?"ru":"en";};
 const FB={uz:["uz","tr","kk","az","tk","ky","ru","en"],ru:["ru","uk","bg","en"],en:["en"]};
 function pick(lang,pref){
   const V=load();if(!V.length)return null;
   pref=pref||cfg.voice;if(pref){const v=V.find(x=>x.voiceURI===pref||x.name===pref);if(v)return v;}
+  const uz=V.filter(isUz);if(uz.length)return uz.find(x=>norm(x.lang)==="uz-uz")||uz.find(x=>x.localService)||uz[0];
   for(const p of FB[lang]||[lang,"en"]){const m=V.filter(x=>norm(x.lang).split("-")[0]===p);if(m.length)return m.find(x=>norm(x.lang)===norm(LC[p]))||m.find(x=>x.localService)||m[0];}
   return V.find(x=>x.default)||V[0];
 }
@@ -6180,16 +6183,32 @@ const MW={uz:{plus:"plus",minus:"minus",eq:"teng",sq:"kvadrat",cube:"kub",pow:"d
 ru:{plus:"плюс",minus:"минус",eq:"равно",sq:"в квадрате",cube:"в кубе",pow:"в степени",mul:"умножить на",div:"разделить на",root:"корень из",pi:"пи",le:"меньше или равно",ge:"больше или равно",ne:"не равно",deg:"градусов",pct:"процентов"},
 en:{plus:"plus",minus:"minus",eq:"equals",sq:"squared",cube:"cubed",pow:"to the power of",mul:"times",div:"divided by",root:"square root of",pi:"pi",le:"less than or equal to",ge:"greater than or equal to",ne:"not equal to",deg:"degrees",pct:"percent"}};
 function math(s,lang){
-  const w=MW[lang]||MW.uz,L="(?<=\\d|\\b[A-Za-z]|[)\\]])",R="(?=\\d|[A-Za-z]\\b|[(\\[])",sp=x=>" "+x+" ";
+  const w=MW[lang]||MW.uz,L="(?<=\\d[A-Za-z]|\\d|\\b[A-Za-z]|[)\\]²³])",R="(?=\\d|[A-Za-z]\\b|[(\\[])",sp=x=>" "+x+" ";
   return s.replace(/\\frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g,"$1"+sp(w.div)+"$2").replace(/\\sqrt\s*\{([^{}]*)\}/g,sp(w.root)+"$1")
    .replace(/\\(?:cdot|times)\b/g,sp(w.mul)).replace(/\\pi\b/g,sp(w.pi)).replace(/\\le(?:q)?\b/g,sp(w.le)).replace(/\\ge(?:q)?\b/g,sp(w.ge)).replace(/\\ne(?:q)?\b/g,sp(w.ne)).replace(/\\[a-zA-Z]+/g," ").replace(/[{}$]/g," ")
-   .replace(/²/g,sp(w.sq)).replace(/³/g,sp(w.cube)).replace(/\^\s*2\b/g,sp(w.sq)).replace(/\^\s*3\b/g,sp(w.cube)).replace(/\^\s*\(?(-?\w+)\)?/g,sp(w.pow)+"$1 ")
-   .replace(/√/g,sp(w.root)).replace(/π/g,sp(w.pi)).replace(/≤/g,sp(w.le)).replace(/≥/g,sp(w.ge)).replace(/≠/g,sp(w.ne)).replace(/[×·]/g,sp(w.mul)).replace(/÷/g,sp(w.div))
    .replace(/=/g,sp(w.eq)).replace(new RegExp(L+"\\s*\\+\\s*"+R,"g"),sp(w.plus)).replace(new RegExp(L+"\\s+[-−–]\\s+"+R,"g"),sp(w.minus)).replace(/(?<=\b[A-Za-z])[-−](?=\d)/g,sp(w.minus))
-   .replace(new RegExp(L+"\\s*\\*\\s*"+R,"g"),sp(w.mul)).replace(new RegExp(L+"\\s*\\/\\s*"+R,"g"),sp(w.div)).replace(/%/g,sp(w.pct)).replace(/°/g,sp(w.deg));
+   .replace(new RegExp(L+"\\s*\\*\\s*"+R,"g"),sp(w.mul)).replace(new RegExp(L+"\\s*\\/\\s*"+R,"g"),sp(w.div)).replace(/%/g,sp(w.pct)).replace(/°/g,sp(w.deg))
+   .replace(/²/g,sp(w.sq)).replace(/³/g,sp(w.cube)).replace(/\^\s*2\b/g,sp(w.sq)).replace(/\^\s*3\b/g,sp(w.cube)).replace(/\^\s*\(?(-?\w+)\)?/g,sp(w.pow)+"$1 ")
+   .replace(/√/g,sp(w.root)).replace(/π/g,sp(w.pi)).replace(/≤/g,sp(w.le)).replace(/≥/g,sp(w.ge)).replace(/≠/g,sp(w.ne)).replace(/[×·]/g,sp(w.mul)).replace(/÷/g,sp(w.div));
+}
+const U1=["nol","bir","ikki","uch","to'rt","besh","olti","yetti","sakkiz","to'qqiz"],U10=["","o'n","yigirma","o'ttiz","qirq","ellik","oltmish","yetmish","sakson","to'qson"];
+function n3(n){const a=[],h=Math.floor(n/100),t=Math.floor(n%100/10),o=n%10;if(h)a.push((h>1?U1[h]+" ":"")+"yuz");if(t)a.push(U10[t]);if(o)a.push(U1[o]);return a.join(" ");}
+function numUz(n){n=Math.trunc(n);if(!isFinite(n)||Math.abs(n)>=1e12)return String(n);if(n===0)return"nol";const neg=n<0;n=Math.abs(n);const o=[];for(const[v,w]of[[1e9,"milliard"],[1e6,"million"],[1e3,"ming"]]){if(n>=v){const q=Math.floor(n/v);o.push(q===1&&v===1e3?"ming":n3(q)+" "+w);n%=v;}}if(n)o.push(n3(n));return(neg?"minus ":"")+o.join(" ");}
+const ordUz=n=>{const w=numUz(n);return w+(/[aeiouo']$/.test(w)?"nchi":"inchi");};
+function normUz(s){
+  const fr=b=>b.length===1?" o'ndan":b.length===2?" yuzdan":b.length===3?" mingdan":"";
+  return s.replace(/[ʻʼ’‘`´]/g,"'").replace(/\b(\d{1,9})-(?=[A-Za-z'])/g,(m,d)=>ordUz(+d)+" ").replace(/(?<![\w.,])(\d{1,9})[.,](\d{1,3})(?!\d)/g,(m,a,b)=>numUz(+a)+" butun "+numUz(+b)+fr(b)).replace(/(^|\s)-(?=\d)/g,"$1minus ").replace(/(?<!\d)\d{1,12}(?!\d)/g,m=>" "+numUz(+m)+" ");
+}
+function respell(t,f){
+  if(f==="uz")return t;
+  t=t.replace(/([OoGg])'/g,"$1^");  // o', g' belgilari
+  if(f==="tr")return t.replace(/[Oo]\^/g,m=>m[0]).replace(/[Gg]\^/g,m=>m[0]).replace(/'/g,"").replace(/sh/g,"ş").replace(/Sh/g,"Ş").replace(/ch/g,"ç").replace(/Ch/g,"Ç").replace(/j/g,"c").replace(/J/g,"C").replace(/x/g,"h").replace(/X/g,"H").replace(/q/g,"k").replace(/Q/g,"K");
+  if(f==="ru"){const M={a:"а",b:"б",d:"д",e:"э",f:"ф",g:"г",h:"х",i:"и",j:"дж",k:"к",l:"л",m:"м",n:"н",o:"о",p:"п",q:"к",r:"р",s:"с",t:"т",u:"у",v:"в",x:"х",y:"й",z:"з"};
+    return t.replace(/[Oo]\^/g,m=>m[0]==="O"?"О":"о").replace(/[Gg]\^/g,m=>m[0]==="G"?"Г":"г").replace(/'/g,"").replace(/sh/gi,m=>m[0]==="S"?"Ш":"ш").replace(/ch/gi,m=>m[0]==="C"?"Ч":"ч").replace(/ng/gi,"нг").replace(/[A-Za-z]/g,c=>{const r=M[c.toLowerCase()];return r?(c===c.toUpperCase()?r[0].toUpperCase()+r.slice(1):r):c;});}
+  return t.replace(/[Oo]\^/g,m=>m[0]).replace(/[Gg]\^/g,m=>m[0]).replace(/'/g,"").replace(/x/g,"kh").replace(/q/g,"k");
 }
 function clean(t,lang){
-  let s=String(t==null?"":t);lang=lang||detect(s);
+  let s=String(t==null?"":t);lang="uz";
   s=s.replace(/```[\s\S]*?```/g," ").replace(/```[\s\S]*$/," ").replace(/<(script|style)[\s\S]*?<\/\1>/gi," ").replace(/<[^>]+>/g," ")
    .replace(/\{[^{}]*"[^{}"]*"\s*:[^{}]*\}/g," ").replace(/\{[^{}]*"[^{}"]*"\s*:[^{}]*\}/g," ").replace(/\[\s*(?:\{[^\]]*\}\s*,?\s*)+\]/g," ")
    .replace(/https?:\/\/\S+|www\.\S+/g," ").replace(/!\[[^\]]*\]\([^)]*\)/g," ").replace(/\[([^\]]+)\]\([^)]*\)/g,"$1")
@@ -6197,7 +6216,7 @@ function clean(t,lang){
    .replace(/^\s{0,3}#{1,6}\s*/gm,"").replace(/^\s*[>•*+-]\s+/gm,"").replace(/^\s*\d+[.)]\s+/gm,"").replace(/[*~|]{1,3}/g,"").replace(/(?<=\s|^)_+|_+(?=\s|$)/g,"")
    .replace(/[\u{1F000}-\u{1FFFF}\u{2190}-\u{21FF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu," ");
   s=s.split("\n").filter(l=>!/^\s*[\[{}\]]|[{};]\s*$|=>|^\s*(const|let|var|function|import|export|return|class|def)\b/.test(l)).join("\n");
-  return math(s,lang).replace(/[ \t]+/g," ").replace(/\s*\n\s*/g,"\n").trim();
+  return normUz(math(s,lang)).replace(/[ \t]+/g," ").replace(/ +([.,!?;:])/g,"$1").replace(/\s*\n\s*/g,"\n").trim();
 }
 function pieces(sn){const r=[];let c="";for(const w of sn.split(/\s+/)){if(c&&(c+" "+w).length>170){r.push(c);c=w;}else c=c?c+" "+w:w;}if(c)r.push(c);return r;}
 function chunks(s){
@@ -6218,7 +6237,7 @@ function run(my,res){
   const next=()=>{
     if(my!==st.sess)return;
     if(st.idx>=st.chunks.length){st.res=null;set("idle");o.onend&&o.onend();return res({ok:true});}
-    const u=new SpeechSynthesisUtterance(st.chunks[st.idx]),v=pick(st.lang,o.voice);
+    const v=pick(st.lang,o.voice),u=new SpeechSynthesisUtterance(respell(st.chunks[st.idx],fam(v)));
     u.lang=LC[st.lang]||"uz-UZ";if(v){try{u.voice=v;u.lang=v.lang;}catch(e){}}
     u.rate=clamp((o.rate||1)*cfg.rate,.5,2);u.pitch=cfg.pitch;u.volume=1;
     let started=false,done=false;
@@ -6238,7 +6257,7 @@ async function speak(text,o){
   if(!SS||typeof SpeechSynthesisUtterance==="undefined"){o.onerror&&o.onerror("unsupported");return{ok:false,reason:"unsupported"};}
   if(!cfg.on&&!o.force)return{ok:true,skipped:true};
   if(!act&&!(navigator.userActivation&&navigator.userActivation.hasBeenActive))return{ok:false,reason:"gesture"};
-  const lang=o.lang||detect(text),t=o.raw?String(text||"").trim():clean(text,lang);
+  const lang="uz",t=o.raw?String(text||"").trim():clean(text,lang);
   if(!t)return{ok:true,empty:true};
   const key=o.key||t.slice(0,80)+"#"+t.length;
   if(st.state==="speaking"&&st.key===key&&Date.now()-st.at<1000)return{ok:true,dup:true};
@@ -6260,11 +6279,11 @@ function toggle(text,o,key){
   if(st.key===key){if(st.state==="speaking")return pause();if(st.state==="paused")return resume();}
   o=Object.assign({},o,{key:key});return speak(text,o);
 }
-const API={speak,speakText:speak,stop:hardStop,pause,resume,toggle,clean,detect,chunks,pick,cfg,
+const API={respell,numUz,hasUz:()=>load().some(isUz),speak,speakText:speak,stop:hardStop,pause,resume,toggle,clean,detect,chunks,pick,cfg,
   state:()=>st.state,key:()=>st.key,voices:()=>load().slice(),ready,
   on:f=>{LS.add(f);return()=>LS.delete(f);},onVoices:f=>{VL.add(f);return()=>VL.delete(f);},
   set:(k,v)=>{if(k==="on")cfg.on=!!v;else if(k==="rate")cfg.rate=clamp(v,.7,1.3);else if(k==="pitch")cfg.pitch=clamp(v,.8,1.2);else if(k==="voice")cfg.voice=String(v||"").slice(0,200);persist();},
-  info:lang=>{const V=load();if(!SS)return"Brauzer ovozni qo'llamaydi.";if(!V.length)return"Ovoz topilmadi: Android Sozlamalar → Til → Matndan nutqqa → Google ovozini o'rnating.";const v=pick(lang||"uz");return"Ovozlar: "+V.length+" · tanlandi: "+(v?v.name+" ("+v.lang+")":"standart");}};
+  info:()=>{const V=load();if(!SS)return"Brauzer ovozni qo'llamaydi.";if(!V.length)return"Ovoz topilmadi: Android Sozlamalar → Til → Matndan nutqqa → Google ovozini o'rnating.";const v=pick("uz");return isUz(v)?"✅ O'zbek ovozi topildi: "+v.name+" ("+v.lang+")":"⚠️ O'zbek ovozi YO'Q. Vaqtincha "+(v?v.name+" ("+v.lang+")":"standart")+" ovozi ishlatilmoqda, talaffuz moslashtirildi. Yaxshi natija uchun telefonga o'zbek ovozini o'rnating.";}};
 window.MaryamTTS=API;window.speakText=speak;
 addEventListener("pagehide",()=>{try{SS&&SS.cancel();}catch(e){}});
 /* ---- chat: har bir AI javobiga 🔊 tugmasi (asosiy kodga tegmasdan) ---- */
@@ -6292,7 +6311,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 "use strict";
 const $=id=>document.getElementById(id);
 const MODELS=["gemini-3.5-flash-lite","gemini-3.7-flash","gemini-3.8-flash","gemini-3.5-flash"];
-const LANGS={uz:["O'zbekcha","uz-UZ"],ru:["Русский","ru-RU"],en:["English","en-US"]};
+const LANGS={uz:["O'zbekcha","uz-UZ"]};
 const SUBJ=["Umumiy","Matematika","Fizika","Biologiya","Tarix","Informatika","Ingliz tili"];
 const LEVEL=["Boshlang'ich","5–6-sinf","7–9-sinf","10–11-sinf","Universitet"];
 let api=null,uid=null,S={n:10,diff:"O'rta"},cur=null,rec=null,gen=0;
@@ -6304,7 +6323,7 @@ function toast(t){const d=document.createElement("div");d.textContent=t;d.style.
 function parseJSON(t){t=String(t||"").replace(/```(?:json)?/gi,"").trim().replace(/,\s*([}\]])/g,"$1");const a=t.indexOf("{"),b=t.lastIndexOf("}");if(a<0||b<a)throw new Error("AI javobi JSON emas");return JSON.parse(t.slice(a,b+1));}
 async function ai(prompt){
   if(!api||!api.geminiJSON)throw new Error("AI ulanmagan. Qayta kiring.");
-  const lang=LANGS[val("uG")||"uz"][0],sys="Sen Maryam AI Ustoz — mehribon, aniq o'qituvchisan. Faqat toza JSON qaytar. Javob tili: "+lang+". Fan: "+(val("uS")||"Umumiy")+". Daraja: "+(val("uL")||"umumiy")+".";
+  const lang=LANGS[val("uG")||"uz"][0],sys="Sen Maryam AI Ustoz — mehribon, aniq o'qituvchisan. Faqat toza JSON qaytar. Javob tili: faqat o'zbek tili (lotin yozuvi), sodda va aniq, qisqa gaplar bilan; apostrof sifatida faqat ' belgisini ishlat; ruscha/inglizcha so'zlarni aralashtirma. Fan: "+(val("uS")||"Umumiy")+". Daraja: "+(val("uL")||"umumiy")+".";
   let err;
   for(const m of MODELS){try{return parseJSON(await api.geminiJSON({model:m,prompt,systemInstruction:sys}));}catch(e){err=e;console.warn("[Ustoz]",m,e&&e.message);}}
   throw err;
@@ -6336,7 +6355,7 @@ async function home(){
   stopVoice();clr();gen++;
   body().innerHTML='<div id="ustLast"></div><div class="ust-card"><h3>Nimani o\'rganamiz?</h3>'+
   '<input class="ust-in" id="uT" placeholder="Masalan: Kvadrat funksiya, Fotosintez, Python..." maxlength="120">'+
-  '<div class="ust-row"><select id="uS">'+opt(SUBJ)+'</select><select id="uL">'+opt(LEVEL,"7–9-sinf")+'</select><select id="uG">'+Object.keys(LANGS).map(k=>'<option value="'+k+'">'+LANGS[k][0]+'</option>').join("")+'</select></div>'+
+  '<div class="ust-row"><select id="uS">'+opt(SUBJ)+'</select><select id="uL">'+opt(LEVEL,"7–9-sinf")+'</select></div>'+
   '<div class="ust-sm">Savollar soni</div><div class="ust-row" id="uN">'+[10,20,30].map(n=>'<button type="button" class="ust-chip'+(S.n===n?" on":"")+'" data-n="'+n+'">'+n+'</button>').join("")+'</div>'+
   '<div class="ust-sm">Qiyinlik</div><div class="ust-row" id="uD">'+["Oson","O'rta","Qiyin"].map(n=>'<button type="button" class="ust-chip'+(S.diff===n?" on":"")+'" data-d="'+n+'">'+n+'</button>').join("")+'</div>'+
   '<button class="ust-btn" data-act="lesson">🎓 Interaktiv dars (6 bosqich)</button><button class="ust-btn alt" data-act="test">📝 Mavzu bo\'yicha test</button><button class="ust-btn alt" data-act="cards">🗂 Kartochkalar</button></div><div class="ust-card"><h3 style="font-size:22px">🔊 Ovoz sozlamalari</h3><button type="button" class="ust-chip'+(MaryamTTS.cfg.on?" on":"")+'" id="uOn" data-act="ttsOn" style="width:100%">'+(MaryamTTS.cfg.on?"Ovoz: YOQILGAN":"Ovoz: O\'CHIRILGAN")+'</button><label class="ust-sm">Tezlik: <b id="uRv">'+MaryamTTS.cfg.rate+'</b></label><input type="range" id="uRt" min="0.7" max="1.3" step="0.05" value="'+MaryamTTS.cfg.rate+'" style="width:100%"><label class="ust-sm">Pitch: <b id="uPv">'+MaryamTTS.cfg.pitch+'</b></label><input type="range" id="uPt" min="0.8" max="1.2" step="0.05" value="'+MaryamTTS.cfg.pitch+'" style="width:100%"><label class="ust-sm">Ovoz tanlash</label><select id="uVo"></select><button class="ust-btn alt" data-act="vtest">▶ Ovozni sinab ko\'rish</button><div class="ust-sm" id="uVs"></div></div>';fillVoices();
@@ -6364,7 +6383,7 @@ function normLesson(d,topic){
   }).filter(s=>s.el.length);
   return steps.length?{title:String(d.title||topic),steps}:fallbackLesson(topic);
 }
-const LPROMPT='6 bosqichli interaktiv dars yarat: 1 Kirish, 2 Asosiy formula/qoida, 3 Misol, 4 Grafik/diagramma, 5 Muhim qoida, 6 Mashq. Har bosqich: {"title":"","voice":"3-5 qisqa gap, har gap bitta elementga mos, nuqta bilan tugasin","elements":[...]}. Element turlari: heading,text,handwriting,formula(LaTeX: y = ax^2 + bx + c),highlight,circle,arrow,line,rectangle,graph({"function":"x^2","xmin":-5,"xmax":5}),chart({"data":[{"label":"","value":1}]}),table({"headers":[],"rows":[[]]}),timeline({"items":[{"year":"","text":""}]}),question({"text":"","options":["","","",""],"answer":0,"explain":""}),tip,warning,code,draw({"shapes":[{"t":"circle","x":150,"y":100,"r":40,"color":"#2457c5"},{"t":"rect","x":10,"y":10,"w":60,"h":40},{"t":"line","x1":0,"y1":0,"x2":50,"y2":50},{"t":"arrow","x1":0,"y1":0,"x2":50,"y2":50},{"t":"poly","points":[[10,10],[60,10],[35,50]]},{"t":"text","x":20,"y":30,"text":""}],"text":"chizma izohi"} — 300x200 koordinata; hujayra, geometriya, fizika, anatomiya chizmalari uchun, 4-12 shakl). Har elementda "type" va "text". Oxirgi bosqichda {"type":"task","text":"mashq sharti","answer":"to\'g\'ri javob"} bo\'lsin. Faqat mavzuga mos elementlarni ishlat (graph faqat funksiya bo\'lsa). JSON: {"title":"","steps":[...]}. Aynan 6 bosqich.';
+const LPROMPT='6 bosqichli interaktiv dars yarat: 1 Kirish, 2 Asosiy formula/qoida, 3 Misol, 4 Grafik/diagramma, 5 Muhim qoida, 6 Mashq. Har bosqich: {"title":"","voice":"3-5 qisqa gap, har gap bitta elementga mos, nuqta bilan tugasin; faqat ovoz chiqarib o\'qiladigan sof o\'zbekcha matn, belgilarsiz (masalan: x kvadrat plus ikki x, formula belgilari bilan emas)","elements":[...]}. Element turlari: heading,text,handwriting,formula(LaTeX: y = ax^2 + bx + c),highlight,circle,arrow,line,rectangle,graph({"function":"x^2","xmin":-5,"xmax":5}),chart({"data":[{"label":"","value":1}]}),table({"headers":[],"rows":[[]]}),timeline({"items":[{"year":"","text":""}]}),question({"text":"","options":["","","",""],"answer":0,"explain":""}),tip,warning,code,draw({"shapes":[{"t":"circle","x":150,"y":100,"r":40,"color":"#2457c5"},{"t":"rect","x":10,"y":10,"w":60,"h":40},{"t":"line","x1":0,"y1":0,"x2":50,"y2":50},{"t":"arrow","x1":0,"y1":0,"x2":50,"y2":50},{"t":"poly","points":[[10,10],[60,10],[35,50]]},{"t":"text","x":20,"y":30,"text":""}],"text":"chizma izohi"} — 300x200 koordinata; hujayra, geometriya, fizika, anatomiya chizmalari uchun, 4-12 shakl). Har elementda "type" va "text". Oxirgi bosqichda {"type":"task","text":"mashq sharti","answer":"to\'g\'ri javob"} bo\'lsin. Faqat mavzuga mos elementlarni ishlat (graph faqat funksiya bo\'lsa). JSON: {"title":"","steps":[...]}. Aynan 6 bosqich.';
 const isJ=e=>/JSON|Unexpected|position|token/i.test(String(e&&e.message));
 async function lesson(topic){
   topic=topic||val("uT");if(!topic)return toast("Avval mavzuni yozing");
@@ -6427,7 +6446,7 @@ const SPD_M=[1.8,1.3,1],SPD_R=[0.8,0.95,1.1],SPD_I=['🐢','🚶','🐇'],SM=()=
 let tm=[],play=true,snd=true;
 const GR={uz:t=>"Bugun "+t+" mavzusini birgalikda o'rganamiz.",ru:t=>"Сегодня мы вместе изучим тему: "+t+".",en:t=>"Today we will learn "+t+" together."};
 function greet(){return(GR[val("uG")||"uz"]||GR.uz)(cur.d.title||cur.topic);}
-function begin(){if(!cur||!cur.gate)return;cur.gate=false;play=true;setPP();const tok=cur.tok=(cur.tok||0)+1,a=$("uA");if(a)a.innerHTML="";speak(greet(),()=>{if(cur&&cur.tok===tok&&play)go(0);});}
+function begin(){if(!cur||!cur.gate)return;if(!MaryamTTS.hasUz()&&!window.__noUzWarn){window.__noUzWarn=1;toast("O'zbek ovozi topilmadi — taxminiy talaffuz ishlatiladi");}cur.gate=false;play=true;setPP();const tok=cur.tok=(cur.tok||0)+1,a=$("uA");if(a)a.innerHTML="";speak(greet(),()=>{if(cur&&cur.tok===tok&&play)go(0);});}
 const task=s=>(s.el||[]).find(b=>b&&b.type==='task');
 const T=ms=>window.__ustFast?ms/25:ms;
 function clr(){tm.forEach(clearTimeout);tm=[];if(cur)cur.tok=(cur.tok||0)+1;}
