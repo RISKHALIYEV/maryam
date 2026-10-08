@@ -1222,6 +1222,22 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
   .ust-err{border-color:var(--danger);color:var(--danger)}
   .ust-sm{font-size:13.5px;color:var(--text-muted)}
   .ust-ask{display:flex;gap:8px;margin:10px 0}.ust-ask input{flex:1}.ust-ask button{width:48px;border-radius:12px;border:1px solid var(--border);background:var(--bg-input);color:var(--text);font-size:18px}
+  /* --- AI Ustoz: doska pleyeri (videodagi kabi) --- */
+  .ub{position:fixed;inset:0;z-index:6;display:flex;flex-direction:column;background-color:#FBF6E4;background-image:linear-gradient(#0000 23px,#e3d9b8 24px),linear-gradient(90deg,#0000 23px,#e3d9b8 24px);background-size:24px 24px;color:#2E2A1E;padding-top:env(safe-area-inset-top,0)}
+  .ub-top{display:flex;gap:8px;padding:10px 12px;position:relative;z-index:3}
+  .ub-top button{width:44px;height:44px;border-radius:12px;border:0;background:#1d2036;color:#fff;font-size:18px}
+  .ub-t{flex:1;background:#1d2036;color:#fff;border-radius:12px;padding:5px 12px;display:flex;flex-direction:column;min-width:0}.ub-t b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ub-t span{font-size:11px;opacity:.7}
+  .ub-cv{flex:1;overflow-y:auto;position:relative;padding:8px 20px 20px;font-family:var(--script);font-size:26px}
+  .ub-b{opacity:0;clip-path:inset(0 100% 0 0)}.ub-b.show{animation:ubW 1.1s ease forwards}@keyframes ubW{to{opacity:1;clip-path:inset(0)}}
+  .ub-h{font-size:34px;font-weight:700;margin-bottom:8px}.ub .fm{color:#2457c5;font-size:32px;margin:8px 0}.ub .ex{font-size:21px;color:#7a3b1f}.ub ul{padding-left:22px}.ub svg{width:100%;height:auto}
+  .ub-orb{position:absolute;width:34px;height:34px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#6a6f95,#14162a);transition:left .8s,top .8s;box-shadow:0 6px 14px #0005;pointer-events:none;left:20px;top:20px}.ub-orb i{position:absolute;right:-6px;top:-6px;width:12px;height:12px;border-radius:50%;background:#ff9f1a}
+  .ub-sh{background:#1d2036;color:#fff;border-radius:22px 22px 0 0;padding:14px 14px calc(14px + env(safe-area-inset-bottom,0));max-height:58%;overflow-y:auto;box-shadow:0 -10px 30px #0004}
+  .ub-sub{font-family:var(--sans);font-size:16px;text-align:center;margin-bottom:10px;line-height:1.4}
+  .ub-seg{display:flex;gap:5px;align-items:center;margin:6px 0}.ub-seg i{flex:1;height:6px;border-radius:4px;background:#3a3e63}.ub-seg i.d{background:#2f6bff}.ub-seg i.on{background:#8fb0ff}.ub-seg span{font-size:12px;margin-left:6px;opacity:.8}
+  .ub-ctl{display:flex;gap:8px;margin:10px 0}.ub-ctl button{flex:1;height:48px;border-radius:14px;border:0;background:#2a2e52;color:#fff;font-size:18px}.ub-ctl .pp{background:#2f6bff;flex:1.4}
+  .ub .ust-ask .ust-in{background:#2a2e52;color:#fff;border-color:#3a3e63}.ub .ust-ask button{background:#2f6bff;color:#fff;border:0}
+  .ub-ls{position:absolute;inset:64px 12px auto;z-index:4;background:#1d2036;border-radius:16px;padding:10px;max-height:60%;overflow:auto}
+  .ub .ust-card{background:#2a2e52;border-color:#3a3e63;color:#fff;box-shadow:none}.ub .ust-opt{background:#fff8;color:#2E2A1E;font-family:var(--sans)}.ub-ls .ust-opt{background:#2a2e52;color:#fff}
 </style>
 </head>
 <body class="auth-loading">
@@ -6155,7 +6171,7 @@ function graph(fn,x0,x1){
 /* ---------- bosh sahifa ---------- */
 const opt=(a,sel)=>a.map(x=>'<option'+(x===sel?" selected":"")+'>'+esc(x)+'</option>').join("");
 async function home(){
-  stopVoice();gen++;
+  stopVoice();clr();gen++;
   body().innerHTML='<div id="ustLast"></div><div class="ust-card"><h3>Nimani o\'rganamiz?</h3>'+
   '<input class="ust-in" id="uT" placeholder="Masalan: Kvadrat funksiya, Fotosintez, Python..." maxlength="120">'+
   '<div class="ust-row"><select id="uS">'+opt(SUBJ)+'</select><select id="uL">'+opt(LEVEL,"7–9-sinf")+'</select><select id="uG">'+Object.keys(LANGS).map(k=>'<option value="'+k+'">'+LANGS[k][0]+'</option>').join("")+'</select></div>'+
@@ -6185,16 +6201,28 @@ function blockHtml(b,k){
   if(b.type==="quiz"&&Array.isArray(b.options))return'<div class="ex">'+esc(b.q)+'</div>'+b.options.map((o,j)=>'<button type="button" class="ust-opt" data-q="'+k+'" data-j="'+j+'">'+esc(o)+'</button>').join("");
   return"";
 }
+let tm=[],play=true,snd=true;
+const T=ms=>window.__ustFast?ms/25:ms;
+function clr(){tm.forEach(clearTimeout);tm=[];}
 function step(i){
-  stopVoice();const L=cur.d,s=L.steps[i],n=L.steps.length;cur.i=i;
-  body().innerHTML='<div class="ust-dots">'+L.steps.map((_,k)=>'<i class="'+(k<=i?"on":"")+'"></i>').join("")+'</div><div class="ust-n">'+(i+1)+' / '+n+'</div>'+
-  '<div class="ust-board"><div style="font-size:30px">'+esc(s.title)+'</div>'+(s.blocks||[]).map((b,k)=>blockHtml(b,k)).join("")+'</div>'+
-  '<div class="ust-card">'+esc(s.text)+'<div class="ust-row"><button class="ust-chip" data-act="speak">🔊 Tinglash</button>'+'</div></div><div id="uA"></div>'+
-  '<div class="ust-ask"><input class="ust-in" id="uQ" placeholder="Yana so\'rang..."><button type="button" data-act="mic" title="Gapirish">🎙</button><button type="button" data-act="ask">➤</button></div>'+
-  '<div class="ust-row">'+(i>0?'<button class="ust-btn alt" data-act="prev">← Orqaga</button>':"")+(i<n-1?'<button class="ust-btn" data-act="next">Keyingi →</button>':'<button class="ust-btn" data-act="finish">✔ Tugatish</button>')+'</div>';
+  stopVoice();clr();const L=cur.d,s=L.steps[i],n=L.steps.length;cur.i=i;cur.k=0;
+  body().innerHTML='<div class="ub"><div class="ub-top"><button type="button" data-act="home" aria-label="Orqaga">←</button><div class="ub-t"><b>'+esc(L.title||cur.topic)+'</b><span>'+(i+1)+'-qadam / '+n+'</span></div><button type="button" data-act="list" aria-label="Qadamlar">⊞</button></div>'+
+  '<div class="ub-cv" id="uCv"><div class="ub-b ub-h">'+esc(s.title)+'</div>'+(s.blocks||[]).map((b,k)=>'<div class="ub-b">'+blockHtml(b,k)+'</div>').join("")+'<div class="ub-orb" id="uO"><i></i></div></div>'+
+  '<div class="ub-sh"><div class="ub-sub">'+esc(s.text)+'</div><div id="uA"></div><div class="ub-seg">'+L.steps.map((_,k)=>'<i class="'+(k<i?"d":k===i?"on":"")+'"></i>').join("")+'<span>'+(i+1)+' / '+n+'</span></div>'+
+  '<div class="ub-ctl"><button type="button" data-act="list">☰</button><button type="button" data-act="replay">↺</button><button type="button" class="pp" data-act="pp">'+(play?"⏸":"▶")+'</button><button type="button" data-act="snd">'+(snd?"🔊":"🔇")+'</button><button type="button" data-act="share">⤴</button></div>'+
+  '<div class="ust-ask"><input class="ust-in" id="uQ" placeholder="Yana so\'rang..."><button type="button" data-act="mic">🎙</button><button type="button" data-act="ask">➤</button></div></div></div>';
   save("progress","last",{title:L.title||cur.topic,topic:cur.topic,step:i+1,total:n});
   save("lessons","cur",{title:L.title||cur.topic,topic:cur.topic,data:JSON.stringify(L).slice(0,200000)});
+  if(play){if(snd)speak(s.text);go(0);}else body().querySelectorAll(".ub-b").forEach(e=>e.classList.add("show"));
 }
+function go(k){
+  const its=body().querySelectorAll(".ub-b");if(!its.length)return;cur.k=k;
+  if(k>=its.length){tm.push(setTimeout(adv,T(Math.max(2500,cur.d.steps[cur.i].text.length*60))));return;}
+  const el=its[k];el.classList.add("show");const o=$("uO"),cv=$("uCv");
+  if(o&&cv){const r=el.getBoundingClientRect(),c=cv.getBoundingClientRect();o.style.left=Math.max(4,Math.min(r.right-c.left,c.width-40))+"px";o.style.top=(r.bottom-c.top+cv.scrollTop-16)+"px";}
+  tm.push(setTimeout(()=>go(k+1),T(1400)));
+}
+function adv(){const n=cur.d.steps.length;if(cur.i<n-1)return step(cur.i+1);const a=$("uA");if(a)a.innerHTML='<div class="ust-card"><b>Dars tugadi 🎉</b><button class="ust-btn" data-act="finish">📝 Mini-test yechish</button><button class="ust-btn alt" data-act="replay">↺ Qayta ko\'rish</button></div>';}
 async function ask(){
   const q=val("uQ");if(!q||!cur)return;const L=cur.d,s=L.steps[cur.i],box=$("uA");
   box.innerHTML='<div class="ust-card"><div class="ust-sk"></div><div class="ust-sk" style="width:60%"></div></div>';const g=gen;
@@ -6280,7 +6308,12 @@ function onClick(e){
   if(D.hard)return test(cur.topic,"Qiyin");
   switch(D.act){
     case"home":return home();case"lesson":return lesson();case"test":return test();case"cards":return cards();
-    case"resume":return resume();case"next":return step(cur.i+1);case"prev":return step(cur.i-1);
+    case"resume":return resume();
+    case"list":{const e=body().querySelector(".ub-ls");if(e)return e.remove();body().querySelector(".ub").insertAdjacentHTML("beforeend",'<div class="ub-ls">'+cur.d.steps.map((q,k)=>'<button type="button" class="ust-opt" data-go="'+k+'">'+(k+1)+'. '+esc(q.title)+'</button>').join("")+'</div>');return;}
+    case"replay":return step(cur.i);
+    case"pp":play=!play;if(play){if(snd)speak(cur.d.steps[cur.i].text);go(cur.k||0);}else{clr();stopVoice();}t.textContent=play?"⏸":"▶";return;
+    case"snd":snd=!snd;if(!snd)stopVoice();t.textContent=snd?"🔊":"🔇";return;
+    case"share":{const L=cur.d,tx=L.title+"\n"+L.steps.map((q,k)=>(k+1)+". "+q.title+": "+q.text).join("\n");if(navigator.share)navigator.share({title:L.title,text:tx}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(tx).then(()=>toast("Nusxalandi"),()=>{});return;}
     case"finish":return test(cur.topic,S.diff);case"ask":return ask();case"mic":return mic();
     case"speak":return speak(cur.d.steps[cur.i].text);case"speakA":return speak(cur.say);
     case"qnext":cur.i++;return quiz();case"result":return result();
@@ -6295,7 +6328,7 @@ async function resume(){
   try{const d=await api.getDoc([...base(),"lessons","cur"]),p=await api.getDoc([...base(),"progress","last"]);if(!d||!d.data)throw new Error("Saqlangan dars topilmadi");cur={d:JSON.parse(d.data),i:0,topic:d.topic};step(Math.min(Math.max((p&&p.step||1)-1,0),cur.d.steps.length-1));}catch(e){fail(e,"home");}
 }
 function open(){$("ustPanel").classList.add("on");const s=$("sidebarClose");if(s&&getComputedStyle(s).display!=="none")s.click();home();}
-function close(){stopVoice();gen++;$("ustPanel").classList.remove("on");}
+function close(){stopVoice();clr();gen++;$("ustPanel").classList.remove("on");}
 function init(){
   const b=$("ustOpenBtn");if(b)b.addEventListener("click",open);
   $("ustClose").addEventListener("click",close);$("ustHome").addEventListener("click",home);body().addEventListener("click",onClick);
