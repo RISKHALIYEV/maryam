@@ -6185,7 +6185,7 @@ async function lesson(topic){
   topic=topic||val("uT");if(!topic)return toast("Avval mavzuni yozing");
   load("Dars tayyorlanmoqda...");const g=gen;
   try{
-    const d=await ai('Mavzu: "'+topic+'". 6 bosqichli interaktiv dars yarat: 1 Kirish, 2 Asosiy formula/qoida, 3 Oddiy misol, 4 Grafik yoki diagramma, 5 Muhim qoida, 6 Mini test. JSON: {"title":"","steps":[{"title":"","text":"2-3 gap tushuntirish","blocks":[{"type":"formula","formula":"y = ax^2 + bx + c","explanation":""},{"type":"graph","function":"x^2"},{"type":"list","items":[""]},{"type":"quiz","q":"","options":["","","",""],"answer":0}]}]}. Faqat mavzuga mos bloklarni ishlat (graph faqat funksiya bo\'lsa). Aynan 6 ta bosqich.');
+    const d=await ai('Mavzu: "'+topic+'". 6 bosqichli interaktiv dars yarat: 1 Kirish, 2 Asosiy formula/qoida, 3 Oddiy misol, 4 Grafik yoki diagramma, 5 Muhim qoida, 6 Mini test. JSON: {"title":"","steps":[{"title":"","text":"3-5 qisqa gap (har gap bitta blokka mos, gap oxirida nuqta)","blocks":[{"type":"formula","formula":"y = ax^2 + bx + c","explanation":""},{"type":"graph","function":"x^2"},{"type":"list","items":[""]},{"type":"quiz","q":"","options":["","","",""],"answer":0}]}]}. Faqat mavzuga mos bloklarni ishlat (graph faqat funksiya bo\'lsa). Aynan 6 ta bosqich.');
     if(g!==gen)return;
     if(!d.steps||!d.steps.length)throw new Error("Dars bo'sh qaytdi");
     d.steps=d.steps.slice(0,8);cur={d:d,i:0,topic:topic};
@@ -6203,24 +6203,27 @@ function blockHtml(b,k){
 }
 let tm=[],play=true,snd=true;
 const T=ms=>window.__ustFast?ms/25:ms;
-function clr(){tm.forEach(clearTimeout);tm=[];}
+function clr(){tm.forEach(clearTimeout);tm=[];if(cur)cur.tok=(cur.tok||0)+1;}
 function step(i){
-  stopVoice();clr();const L=cur.d,s=L.steps[i],n=L.steps.length;cur.i=i;cur.k=0;
+  stopVoice();clr();const L=cur.d,s=L.steps[i],n=L.steps.length;cur.i=i;cur.k=0;cur.sents=String(s.text||'').split(/(?<=[.!?…])\s+/).filter(Boolean);if(!cur.sents.length)cur.sents=[String(s.text||'')];
   body().innerHTML='<div class="ub"><div class="ub-top"><button type="button" data-act="home" aria-label="Orqaga">←</button><div class="ub-t"><b>'+esc(L.title||cur.topic)+'</b><span>'+(i+1)+'-qadam / '+n+'</span></div><button type="button" data-act="list" aria-label="Qadamlar">⊞</button></div>'+
   '<div class="ub-cv" id="uCv"><div class="ub-b ub-h">'+esc(s.title)+'</div>'+(s.blocks||[]).map((b,k)=>'<div class="ub-b">'+blockHtml(b,k)+'</div>').join("")+'<div class="ub-orb" id="uO"><i></i></div></div>'+
-  '<div class="ub-sh"><div class="ub-sub">'+esc(s.text)+'</div><div id="uA"></div><div class="ub-seg">'+L.steps.map((_,k)=>'<i class="'+(k<i?"d":k===i?"on":"")+'"></i>').join("")+'<span>'+(i+1)+' / '+n+'</span></div>'+
+  '<div class="ub-sh"><div class="ub-sub" id="uSub">'+esc(play?cur.sents[0]:s.text)+'</div><div id="uA"></div><div class="ub-seg">'+L.steps.map((_,k)=>'<i class="'+(k<i?"d":k===i?"on":"")+'"></i>').join("")+'<span>'+(i+1)+' / '+n+'</span></div>'+
   '<div class="ub-ctl"><button type="button" data-act="list">☰</button><button type="button" data-act="replay">↺</button><button type="button" class="pp" data-act="pp">'+(play?"⏸":"▶")+'</button><button type="button" data-act="snd">'+(snd?"🔊":"🔇")+'</button><button type="button" data-act="share">⤴</button></div>'+
   '<div class="ust-ask"><input class="ust-in" id="uQ" placeholder="Yana so\'rang..."><button type="button" data-act="mic">🎙</button><button type="button" data-act="ask">➤</button></div></div></div>';
   save("progress","last",{title:L.title||cur.topic,topic:cur.topic,step:i+1,total:n});
   save("lessons","cur",{title:L.title||cur.topic,topic:cur.topic,data:JSON.stringify(L).slice(0,200000)});
-  if(play){if(snd)speak(s.text);go(0);}else body().querySelectorAll(".ub-b").forEach(e=>e.classList.add("show"));
+  if(play)go(0);else body().querySelectorAll(".ub-b").forEach(e=>e.classList.add("show"));
 }
 function go(k){
-  const its=body().querySelectorAll(".ub-b");if(!its.length)return;cur.k=k;
-  if(k>=its.length){tm.push(setTimeout(adv,T(Math.max(2500,cur.d.steps[cur.i].text.length*60))));return;}
-  const el=its[k];el.classList.add("show");const o=$("uO"),cv=$("uCv");
-  if(o&&cv){const r=el.getBoundingClientRect(),c=cv.getBoundingClientRect();o.style.left=Math.max(4,Math.min(r.right-c.left,c.width-40))+"px";o.style.top=(r.bottom-c.top+cv.scrollTop-16)+"px";}
-  tm.push(setTimeout(()=>go(k+1),T(1400)));
+  const its=body().querySelectorAll(".ub-b"),q=cur.sents||[],N=Math.max(its.length,q.length);cur.k=k;const tok=cur.tok=(cur.tok||0)+1;
+  if(k>=N){tm.push(setTimeout(adv,T(1500)));return;}
+  const el=its[k];
+  if(el){el.classList.add("show");const o=$("uO"),cv=$("uCv");if(o&&cv){const r=el.getBoundingClientRect(),c=cv.getBoundingClientRect();o.style.left=Math.max(4,Math.min(r.right-c.left,c.width-40))+"px";o.style.top=(r.bottom-c.top+cv.scrollTop-16)+"px";el.scrollIntoView({block:"nearest",behavior:"smooth"});}}
+  const sub=$("uSub"),txt=q[k]||"";if(sub&&txt)sub.textContent=txt;
+  let done=false;const nx=()=>{if(done||!cur||cur.tok!==tok)return;done=true;go(k+1);};
+  if(snd&&txt){speak(txt,nx);tm.push(setTimeout(nx,T(txt.length*140+4000)));}
+  else tm.push(setTimeout(nx,T(Math.max(1500,txt.length*65))));
 }
 function adv(){const n=cur.d.steps.length;if(cur.i<n-1)return step(cur.i+1);const a=$("uA");if(a)a.innerHTML='<div class="ust-card"><b>Dars tugadi 🎉</b><button class="ust-btn" data-act="finish">📝 Mini-test yechish</button><button class="ust-btn alt" data-act="replay">↺ Qayta ko\'rish</button></div>';}
 async function ask(){
@@ -6236,7 +6239,7 @@ async function ask(){
 }
 /* ---------- ovoz (bepul Web Speech API) ---------- */
 function stopVoice(){try{speechSynthesis.cancel();}catch(e){}try{rec&&rec.stop();}catch(e){}rec=null;}
-function speak(t){if(!("speechSynthesis"in window)||!t)return toast("Brauzer ovozni qo'llamaydi");stopVoice();const u=new SpeechSynthesisUtterance(t);u.lang=LANGS[val("uG")||"uz"][1];speechSynthesis.speak(u);}
+function speak(t,cb){if(!("speechSynthesis"in window)||!t){cb&&cb();return;}stopVoice();const u=new SpeechSynthesisUtterance(t);u.lang=LANGS[val("uG")||"uz"][1];if(cb){u.onend=cb;u.onerror=cb;}speechSynthesis.speak(u);}
 function mic(){
   const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R)return toast("Brauzer mikrofonni qo'llamaydi");
   if(rec){stopVoice();return;}
@@ -6311,7 +6314,7 @@ function onClick(e){
     case"resume":return resume();
     case"list":{const e=body().querySelector(".ub-ls");if(e)return e.remove();body().querySelector(".ub").insertAdjacentHTML("beforeend",'<div class="ub-ls">'+cur.d.steps.map((q,k)=>'<button type="button" class="ust-opt" data-go="'+k+'">'+(k+1)+'. '+esc(q.title)+'</button>').join("")+'</div>');return;}
     case"replay":return step(cur.i);
-    case"pp":play=!play;if(play){if(snd)speak(cur.d.steps[cur.i].text);go(cur.k||0);}else{clr();stopVoice();}t.textContent=play?"⏸":"▶";return;
+    case"pp":play=!play;if(play)go(cur.k||0);else{clr();stopVoice();}t.textContent=play?"⏸":"▶";return;
     case"snd":snd=!snd;if(!snd)stopVoice();t.textContent=snd?"🔊":"🔇";return;
     case"share":{const L=cur.d,tx=L.title+"\n"+L.steps.map((q,k)=>(k+1)+". "+q.title+": "+q.text).join("\n");if(navigator.share)navigator.share({title:L.title,text:tx}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(tx).then(()=>toast("Nusxalandi"),()=>{});return;}
     case"finish":return test(cur.topic,S.diff);case"ask":return ask();case"mic":return mic();
