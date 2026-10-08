@@ -6185,7 +6185,7 @@ async function lesson(topic){
   topic=topic||val("uT");if(!topic)return toast("Avval mavzuni yozing");
   load("Dars tayyorlanmoqda...");const g=gen;
   try{
-    const d=await ai('Mavzu: "'+topic+'". 6 bosqichli interaktiv dars yarat: 1 Kirish, 2 Asosiy formula/qoida, 3 Oddiy misol, 4 Grafik yoki diagramma, 5 Muhim qoida, 6 Mini test. JSON: {"title":"","steps":[{"title":"","text":"3-5 qisqa gap (har gap bitta blokka mos, gap oxirida nuqta)","blocks":[{"type":"formula","formula":"y = ax^2 + bx + c","explanation":""},{"type":"graph","function":"x^2"},{"type":"list","items":[""]},{"type":"quiz","q":"","options":["","","",""],"answer":0}]}]}. Faqat mavzuga mos bloklarni ishlat (graph faqat funksiya bo\'lsa). Aynan 6 ta bosqich.');
+    const d=await ai('Mavzu: "'+topic+'". 6 bosqichli interaktiv dars yarat: 1 Kirish, 2 Asosiy formula/qoida, 3 Oddiy misol, 4 Grafik yoki diagramma, 5 Muhim qoida, 6 Mashq (talaba javob yozadi). JSON: {"title":"","steps":[{"title":"","text":"3-5 qisqa gap (har gap bitta blokka mos, gap oxirida nuqta)","blocks":[{"type":"formula","formula":"y = ax^2 + bx + c","explanation":""},{"type":"graph","function":"x^2"},{"type":"list","items":[""]},{"type":"quiz","q":"","options":["","","",""],"answer":0},{"type":"task","q":"mashq sharti","answer":"to\'g\'ri javob"}]}]}. Oxirgi bosqichda albatta "task" bloki bo\'lsin. Faqat mavzuga mos bloklarni ishlat (graph faqat funksiya bo\'lsa). Aynan 6 ta bosqich.');
     if(g!==gen)return;
     if(!d.steps||!d.steps.length)throw new Error("Dars bo'sh qaytdi");
     d.steps=d.steps.slice(0,8);cur={d:d,i:0,topic:topic};
@@ -6199,9 +6199,11 @@ function blockHtml(b,k){
   if(b.type==="graph")return graph(b.function,b.xmin,b.xmax);
   if(b.type==="list"&&Array.isArray(b.items))return'<ul>'+b.items.map(x=>'<li>'+sup(x)+'</li>').join("")+'</ul>';
   if(b.type==="quiz"&&Array.isArray(b.options))return'<div class="ex">'+esc(b.q)+'</div>'+b.options.map((o,j)=>'<button type="button" class="ust-opt" data-q="'+k+'" data-j="'+j+'">'+esc(o)+'</button>').join("");
+  if(b.type==="task")return'<div class="ex" style="font-size:24px;color:#6b2fa3">✍ Mashq: '+sup(b.q)+'</div>';
   return"";
 }
 let tm=[],play=true,snd=true;
+const task=s=>(s.blocks||[]).find(b=>b&&b.type==='task');
 const T=ms=>window.__ustFast?ms/25:ms;
 function clr(){tm.forEach(clearTimeout);tm=[];if(cur)cur.tok=(cur.tok||0)+1;}
 function step(i){
@@ -6210,14 +6212,14 @@ function step(i){
   '<div class="ub-cv" id="uCv"><div class="ub-b ub-h">'+esc(s.title)+'</div>'+(s.blocks||[]).map((b,k)=>'<div class="ub-b">'+blockHtml(b,k)+'</div>').join("")+'<div class="ub-orb" id="uO"><i></i></div></div>'+
   '<div class="ub-sh"><div class="ub-sub" id="uSub">'+esc(play?cur.sents[0]:s.text)+'</div><div id="uA"></div><div class="ub-seg">'+L.steps.map((_,k)=>'<i class="'+(k<i?"d":k===i?"on":"")+'"></i>').join("")+'<span>'+(i+1)+' / '+n+'</span></div>'+
   '<div class="ub-ctl"><button type="button" data-act="list">☰</button><button type="button" data-act="replay">↺</button><button type="button" class="pp" data-act="pp">'+(play?"⏸":"▶")+'</button><button type="button" data-act="snd">'+(snd?"🔊":"🔇")+'</button><button type="button" data-act="share">⤴</button></div>'+
-  '<div class="ust-ask"><input class="ust-in" id="uQ" placeholder="Yana so\'rang..."><button type="button" data-act="mic">🎙</button><button type="button" data-act="ask">➤</button></div></div></div>';
+  '<div class="ust-ask"><input class="ust-in" id="uQ" placeholder="'+(task(s)?"Javobingni yoz...":"Yana so\'rang...")+'"><button type="button" data-act="mic">🎙</button><button type="button" data-act="'+(task(s)?"check":"ask")+'">➤</button></div>'+(task(s)?'<button class="ust-btn alt" data-act="ask">❓ Savol berish</button>':"")+'</div></div>';
   save("progress","last",{title:L.title||cur.topic,topic:cur.topic,step:i+1,total:n});
   save("lessons","cur",{title:L.title||cur.topic,topic:cur.topic,data:JSON.stringify(L).slice(0,200000)});
   if(play)go(0);else body().querySelectorAll(".ub-b").forEach(e=>e.classList.add("show"));
 }
 function go(k){
   const its=body().querySelectorAll(".ub-b"),q=cur.sents||[],N=Math.max(its.length,q.length);cur.k=k;const tok=cur.tok=(cur.tok||0)+1;
-  if(k>=N){tm.push(setTimeout(adv,T(1500)));return;}
+  if(k>=N){const tk=task(cur.d.steps[cur.i]);if(tk){const a=$("uA");if(a)a.innerHTML='<div class="ust-card">✍ Mashqni bajaring: javobni pastga yozing yoki 🎙 bilan ayting.</div>';}else tm.push(setTimeout(adv,T(1500)));return;}
   const el=its[k];
   if(el){el.classList.add("show");const o=$("uO"),cv=$("uCv");if(o&&cv){const r=el.getBoundingClientRect(),c=cv.getBoundingClientRect();o.style.left=Math.max(4,Math.min(r.right-c.left,c.width-40))+"px";o.style.top=(r.bottom-c.top+cv.scrollTop-16)+"px";el.scrollIntoView({block:"nearest",behavior:"smooth"});}}
   const sub=$("uSub"),txt=q[k]||"";if(sub&&txt)sub.textContent=txt;
@@ -6234,12 +6236,33 @@ async function ask(){
     if(g!==gen||!$("uA"))return;
     const gb=Number(r.goBackTo);cur.say=r.answer;
     $("uA").innerHTML='<div class="ust-card"><b>Ustoz:</b> '+esc(r.answer)+(r.misconception?'<p class="ust-sm">⚠ '+esc(r.misconception)+'</p>':"")+(gb>=1&&gb<=L.steps.length&&gb-1!==cur.i?'<button class="ust-btn alt" data-go="'+(gb-1)+'">↩ '+gb+'-bosqichga qaytish</button>':"")+'<div class="ust-row"><button class="ust-chip" data-act="speakA">🔊 Tinglash</button></div></div>';
-    $("uQ").value="";
+    $("uQ").value="";if(snd)speak(r.answer);
+  }catch(e){if($("uA"))$("uA").innerHTML='<div class="ust-card ust-err">'+esc(e.message)+'</div>';}
+}
+async function check(){
+  const ans=val("uQ"),L=cur.d,s=L.steps[cur.i],tk=task(s);if(!ans||!tk)return toast("Avval javobni yozing");
+  const box=$("uA");box.innerHTML='<div class="ust-card"><div class="ust-sk"></div></div>';
+  try{
+    const r=await ai('Dars: "'+L.title+'". Mashq: "'+tk.q+'". To\'g\'ri javob: "'+tk.answer+'". Talaba javobi: "'+ans+'". Tekshir. JSON: {"correct":true,"feedback":"qisqa izoh; xato bo\'lsa nima xato ekanini ayt","hint":"yo\'naltiruvchi maslahat"}');
+    if(!$("uA"))return;const ok=r.correct===true||r.correct==="true";
+    $("uA").innerHTML='<div class="ust-card"><b>'+(ok?"✅ To'g'ri!":"❌ Hali emas")+'</b><p>'+esc(r.feedback)+'</p>'+(!ok&&r.hint?'<p class="ust-sm">💡 '+esc(r.hint)+'</p>':"")+'<button class="ust-btn" data-act="adv">'+(cur.i<L.steps.length-1?"Davom etish →":"Yakunlash")+'</button></div>';
+    save("results",String(Date.now()),{topic:cur.topic,kind:"mashq",correct:ok,step:cur.i+1});
+    speak((ok?"To'g'ri! ":"")+(r.feedback||""));
   }catch(e){if($("uA"))$("uA").innerHTML='<div class="ust-card ust-err">'+esc(e.message)+'</div>';}
 }
 /* ---------- ovoz (bepul Web Speech API) ---------- */
-function stopVoice(){try{speechSynthesis.cancel();}catch(e){}try{rec&&rec.stop();}catch(e){}rec=null;}
-function speak(t,cb){if(!("speechSynthesis"in window)||!t){cb&&cb();return;}stopVoice();const u=new SpeechSynthesisUtterance(t);u.lang=LANGS[val("uG")||"uz"][1];if(cb){u.onend=cb;u.onerror=cb;}speechSynthesis.speak(u);}
+let aud=null,voices=[];
+function loadV(){try{voices=speechSynthesis.getVoices()||[];}catch(e){}}
+function pickV(code){const c=code.toLowerCase(),p=c.slice(0,2);return voices.find(v=>String(v.lang).replace("_","-").toLowerCase()===c)||voices.find(v=>String(v.lang).toLowerCase().startsWith(p));}
+function stopVoice(){try{speechSynthesis.cancel();}catch(e){}try{rec&&rec.stop();}catch(e){}rec=null;if(aud){aud.onended=aud.onerror=null;try{aud.pause();}catch(e){}aud=null;}}
+function speak(t,cb){
+  if(!t){cb&&cb();return;}stopVoice();loadV();
+  const code=LANGS[val("uG")||"uz"][1];let fin=false;const end=()=>{if(fin)return;fin=true;cb&&cb();};
+  const browser=v=>{if(!("speechSynthesis"in window))return end();const u=new SpeechSynthesisUtterance(t);u.lang=v?v.lang:code;if(v)u.voice=v;u.onend=end;u.onerror=end;speechSynthesis.speak(u);};
+  const v="speechSynthesis"in window?pickV(code):null;
+  if(v)return browser(v);
+  try{aud=new Audio("https://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&tl="+code.slice(0,2)+"&q="+encodeURIComponent(t.slice(0,190)));aud.onended=end;aud.onerror=()=>{aud=null;browser(null);};const pr=aud.play();pr&&pr.catch&&pr.catch(()=>{aud=null;browser(null);});}catch(e){browser(null);}
+}
 function mic(){
   const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R)return toast("Brauzer mikrofonni qo'llamaydi");
   if(rec){stopVoice();return;}
@@ -6317,7 +6340,7 @@ function onClick(e){
     case"pp":play=!play;if(play)go(cur.k||0);else{clr();stopVoice();}t.textContent=play?"⏸":"▶";return;
     case"snd":snd=!snd;if(!snd)stopVoice();t.textContent=snd?"🔊":"🔇";return;
     case"share":{const L=cur.d,tx=L.title+"\n"+L.steps.map((q,k)=>(k+1)+". "+q.title+": "+q.text).join("\n");if(navigator.share)navigator.share({title:L.title,text:tx}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(tx).then(()=>toast("Nusxalandi"),()=>{});return;}
-    case"finish":return test(cur.topic,S.diff);case"ask":return ask();case"mic":return mic();
+    case"finish":return test(cur.topic,S.diff);case"ask":return ask();case"check":return check();case"adv":return adv();case"mic":return mic();
     case"speak":return speak(cur.d.steps[cur.i].text);case"speakA":return speak(cur.say);
     case"qnext":cur.i++;return quiz();case"result":return result();
     case"explainWrong":body().insertAdjacentHTML("afterbegin",'<div class="ust-card"><h3>Xatolar tahlili</h3>'+cur.res.wrong.map(w=>'<p><b>'+esc(w.q)+'</b><br>Sizniki: '+esc(w.picked)+'<br>To\'g\'ri: '+esc(w.right)+(w.explain?'<br><span class="ust-sm">💡 '+esc(w.explain)+'</span>':"")+'</p>').join("")+'</div>');body().scrollTop=0;return;
@@ -6335,9 +6358,10 @@ function close(){stopVoice();clr();gen++;$("ustPanel").classList.remove("on");}
 function init(){
   const b=$("ustOpenBtn");if(b)b.addEventListener("click",open);
   $("ustClose").addEventListener("click",close);$("ustHome").addEventListener("click",home);body().addEventListener("click",onClick);
-  body().addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="uQ")ask();});
+  body().addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="uQ")(cur&&cur.d&&task(cur.d.steps[cur.i])?check():ask());});
   if(window.MaryamFBReady)window.MaryamFBReady.then(r=>{if(r&&r.ok){api=r.api;api.onAuthChanged(u=>{uid=u?u.uid:null;if(!u)close();});}}).catch(()=>{});
-  window.__ust={parseJSON,compile,graph};
+  loadV();try{speechSynthesis.onvoiceschanged=loadV;}catch(e){}
+  window.__ust={parseJSON,compile,graph,pickV:c=>pickV(c)};
 }
 init();
 })();
