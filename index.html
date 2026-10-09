@@ -269,6 +269,25 @@ const SDK_VERSIONS = ["12.10.0", "12.18.0", "11.10.0"];
           if (inl && inl.data) return inl.data;
         }
         return null;
+      },
+
+      // O'zbekcha ovoz (TTS): Gemini TTS modeli, Firebase AI Logic orqali. Xom PCM (base64) qaytaradi.
+      async geminiSpeech({ model, text, voiceName, timeoutMs, signal }) {
+        if (!ai) throw Object.assign(new Error(diag.aiError || "Firebase AI Logic SDK yuklanmadi."), { code: "maryam/no-ai" });
+        const AUD = aiM.ResponseModality ? aiM.ResponseModality.AUDIO : "AUDIO";
+        const gm = makeModel({ model, generationConfig: { responseModalities: [AUD], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName || "Sulafat" } } } } });
+        const res = await withTimeout(raceAbort(gm.generateContent(text), signal), timeoutMs || 30000, "generateContent");
+        let parts = [];
+        try { parts = res.response.inlineDataParts() || []; } catch (e) { parts = []; }
+        if (!parts.length) {
+          const cand = res && res.response && res.response.candidates && res.response.candidates[0];
+          parts = ((cand && cand.content && cand.content.parts) || []).filter((x) => x.inlineData || x.inline_data);
+        }
+        for (const x of parts) {
+          const inl = x.inlineData || x.inline_data;
+          if (inl && inl.data) return { data: inl.data, mime: inl.mimeType || inl.mime_type || "" };
+        }
+        return null;
       }
     };
 
@@ -6254,10 +6273,10 @@ Javobda faqat bitta fayl bloki va 1 qator izoh yoz.`;
 "use strict";
 const SS=window.speechSynthesis,KEY="maryam_tts_v1",AND=/Android/i.test(navigator.userAgent);
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,Number(v)||1));
-const cfg={on:true,rate:.9,pitch:1,volume:1,voice:"",engine:"auto",mms:false,uzModel:"",approx:true};
+const cfg={on:true,rate:.9,pitch:1,volume:1,voice:"",engine:"auto",mms:false,uzModel:"",approx:true,gemModel:"gemini-3.8-flash-tts",gemVoice:"Sulafat"};
 try{Object.assign(cfg,JSON.parse(localStorage.getItem(KEY)||"{}"));}catch(e){}
-cfg.rate=clamp(cfg.rate,.7,1.3);cfg.pitch=clamp(cfg.pitch,.8,1.2);cfg.volume=clamp(cfg.volume,.3,1);cfg.voice=String(cfg.voice||"").slice(0,200);cfg.on=cfg.on!==false;if(!["auto","browser","mms"].includes(cfg.engine))cfg.engine="auto";cfg.mms=!!cfg.mms;cfg.approx=cfg.approx!==false;if(!/^[\w.-]+\/[\w.-]+$/.test(cfg.uzModel||""))cfg.uzModel="";
-const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify({on:cfg.on,rate:cfg.rate,pitch:cfg.pitch,volume:cfg.volume,voice:cfg.voice,engine:cfg.engine,mms:cfg.mms,uzModel:cfg.uzModel,approx:cfg.approx}));}catch(e){}};
+cfg.rate=clamp(cfg.rate,.7,1.3);cfg.pitch=clamp(cfg.pitch,.8,1.2);cfg.volume=clamp(cfg.volume,.3,1);cfg.voice=String(cfg.voice||"").slice(0,200);cfg.on=cfg.on!==false;if(!["auto","browser","mms","gemini"].includes(cfg.engine))cfg.engine="auto";cfg.mms=!!cfg.mms;cfg.approx=cfg.approx!==false;if(!/^[\w.-]+\/[\w.-]+$/.test(cfg.uzModel||""))cfg.uzModel="";if(!/^[\w.-]{3,60}$/.test(cfg.gemModel||""))cfg.gemModel="gemini-3.8-flash-tts";if(!/^[A-Za-z]{3,20}$/.test(cfg.gemVoice||""))cfg.gemVoice="Sulafat";
+const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify({on:cfg.on,rate:cfg.rate,pitch:cfg.pitch,volume:cfg.volume,voice:cfg.voice,engine:cfg.engine,mms:cfg.mms,uzModel:cfg.uzModel,approx:cfg.approx,gemModel:cfg.gemModel,gemVoice:cfg.gemVoice}));}catch(e){}};
 let act=!!(navigator.userActivation&&navigator.userActivation.hasBeenActive);
 ["pointerdown","touchend","keydown","click"].forEach(n=>addEventListener(n,()=>{act=true;},{capture:true,passive:true}));
 /* ---- ovozlar ---- */
@@ -6330,12 +6349,12 @@ function clean(t,lang,words){
   s=s.split("\n").filter(l=>!/^\s*[\[{}\]]|[{};]\s*$|=>|^\s*(const|let|var|function|import|export|return|class|def)\b/.test(l)).join("\n");
   return normNum(math(s,lang),lang,words).replace(/[ \t]+/g," ").replace(/ +([.,!?;:])/g,"$1").replace(/\s*\n\s*/g,"\n").trim();
 }
-function pieces(sn){const r=[];let c="";for(const w of sn.split(/\s+/)){if(c&&(c+" "+w).length>170){r.push(c);c=w;}else c=c?c+" "+w:w;}if(c)r.push(c);return r;}
-function chunks(s){
+function pieces(sn,M){M=M||170;const r=[];let c="";for(const w of sn.split(/\s+/)){if(c&&(c+" "+w).length>M){r.push(c);c=w;}else c=c?c+" "+w:w;}if(c)r.push(c);return r;}
+function chunks(s,M){M=M||170;
   const out=[];out.para=new Set();
   const paras=s.split(/\n+/).filter(p=>p.trim());
   paras.forEach((para,pi)=>{let cur="";
-    for(const sent of para.split(/(?<=[.!?…;:])\s+/)){for(const p of(sent.length>170?pieces(sent):[sent])){if(!p)continue;if(cur&&(cur+" "+p).length>170){out.push(cur);cur=p;}else cur=cur?cur+" "+p:p;}}
+    for(const sent of para.split(/(?<=[.!?…;:])\s+/)){for(const p of(sent.length>M?pieces(sent,M):[sent])){if(!p)continue;if(cur&&(cur+" "+p).length>M){out.push(cur);cur=p;}else cur=cur?cur+" "+p:p;}}
     if(cur)out.push(cur);
     if(pi<paras.length-1&&out.length)out.para.add(out.length-1);});
   return out;
@@ -6364,14 +6383,50 @@ function uzCyr(t){
   const M={a:"а",b:"б",d:"д",e:"е",f:"ф",g:"г",h:"ҳ",i:"и",j:"ж",k:"к",l:"л",m:"м",n:"н",o:"о",p:"п",q:"қ",r:"р",s:"с",t:"т",u:"у",v:"в",x:"х",y:"й",z:"з","'":"ъ"};
   return t.replace(/[a-z']/g,c=>M[c]||c);
 }
-async function runMMS(my,res){
+/* ---- GEMINI TTS (bulutda; Firebase AI Logic orqali, foydalanuvchi kaliti kerak emas; preview, kvota bilan) ---- */
+const GV=["Sulafat","Kore","Leda","Aoede","Achernar","Zephyr","Charon","Orus","Puck"],GFB="gemini-3.8-flash-lite-tts";
+const GC=new Map();let gemOff=0,gemInfo="";
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const gemApi=()=>{const a=window.MaryamFBApi;return a&&a.aiAvailable&&typeof a.geminiSpeech==="function"?a:null;};
+const useGem=l=>l==="uz"&&cfg.engine!=="browser"&&cfg.engine!=="mms"&&Date.now()>gemOff&&!!gemApi()&&(cfg.engine==="gemini"||!load().some(isUz));
+const gemPrompt=t=>"Read the following transcript aloud exactly as written. The transcript is in Uzbek (Latin script); do not translate it and do not read these notes aloud.\n\n# Audio Profile\nA warm, patient native Uzbek teacher from Tashkent, Uzbekistan.\n\n# Director's note\nAccent: authentic native Uzbek (Uzbekistan), with correct Uzbek pronunciation of o', g', q, x, h, sh and ch; it must not sound Russian, Turkish or English. Pace: calm and clear, with natural teaching intonation.\n\n## Transcript\n"+t;
+function pcmDecode(b64,mime){const m=/rate=(\d{4,6})/i.exec(mime||""),sr=m?+m[1]:24000,bin=atob(b64),n=bin.length>>1,f=new Float32Array(n);for(let i=0;i<n;i++){let v=bin.charCodeAt(2*i)|(bin.charCodeAt(2*i+1)<<8);if(v>=32768)v-=65536;f[i]=v/32768;}return{audio:f,sampling_rate:sr};}
+function gemCls(e){const s=String(e&&e.message||e||"")+" "+String(e&&e.code||"");
+  if(/audio-blocked|abort|cancel/i.test(s))return"skip";
+  if(/\b404\b|not.?found|not supported|unsupported/i.test(s))return"model";
+  if(/\b429\b|quota|exhausted|rate.?limit/i.test(s))return"quota";
+  if(/\b50[0-4]\b|timeout|javob kelmadi|empty-audio|fetch-error|network|Failed to fetch|overload|unavailable|text token/i.test(s))return"retry";
+  return"fatal";}
+function gemFail(e){const c=gemCls(e);gemInfo=String(e&&e.message||e||"").slice(0,160);if(c==="skip")return;gemOff=Date.now()+(c==="quota"?90000:(c==="fatal"||c==="model")?300000:30000);tt("gem","Gemini ovozi ishlamadi ("+(c==="quota"?"limit tugadi":c==="retry"?"vaqtincha xato":"ruxsat yoki sozlama xatosi")+") — qurilma ovozi ishlatilmoqda.");}
+function gemPCM(text){
+  const key=cfg.gemVoice+"|"+cfg.gemModel+"|"+text;
+  if(GC.has(key)){const q=GC.get(key);GC.delete(key);GC.set(key,q);return q;}
+  const p=(async()=>{
+    const api=gemApi();if(!api)throw new Error("gemini-api yo'q");
+    let last=null;
+    for(const m of[cfg.gemModel,GFB].filter((x,i,a)=>x&&a.indexOf(x)===i)){
+      for(let k=0;k<3;k++){
+        try{const r=await api.geminiSpeech({model:m,text:gemPrompt(text),voiceName:cfg.gemVoice,timeoutMs:30000});if(!r||!r.data)throw new Error("empty-audio");const o=pcmDecode(r.data,r.mime);gemInfo="";return o;}
+        catch(e){last=e;const c=gemCls(e);if(c==="model")break;if(c==="retry"&&k<2){await sleep(600*(k+1));continue;}throw e;}
+      }
+    }
+    throw last||new Error("gemini-tts");
+  })();
+  GC.set(key,p);p.catch(()=>{if(GC.get(key)===p)GC.delete(key);});
+  while(GC.size>30)GC.delete(GC.keys().next().value);
+  return p;
+}
+/* keyingi gapni oldindan tayyorlab qo'yish (kutish vaqtini qisqartiradi) */
+function prefetch(text,lang){try{if(!cfg.on||!text||(lang||"uz")!=="uz"||!useGem("uz")||!act)return;const c=chunks(clean(text,"uz",false),380);if(c[0])gemPCM(c[0]).catch(()=>{});}catch(e){}}
+async function runMMS(my,res,gm){
   const o=st.opts,l=st.lang;
   try{
-    const syn=await mload(l);if(my!==st.sess)return;
+    const syn=gm?null:await mload(l);if(my!==st.sess)return;
     ac=ac||new(window.AudioContext||window.webkitAudioContext)();try{await Promise.race([ac.resume(),new Promise(r=>setTimeout(r,1500))]);}catch(e){}
     if(ac.state!=="running")throw new Error("audio-blocked");
-    const gen=i=>syn(l==="uz"?uzCyr(st.chunks[i]):st.chunks[i].toLowerCase());
+    const gen=i=>gm?gemPCM(st.chunks[i]):syn(l==="uz"?uzCyr(st.chunks[i]):st.chunks[i].toLowerCase());
     const play=out=>new Promise(r=>{const b=ac.createBuffer(1,out.audio.length,out.sampling_rate);b.copyToChannel(out.audio,0);const x=ac.createBufferSource();x.buffer=b;x.playbackRate.value=clamp((o.rate||1)*cfg.rate/.9,.6,1.6);const gn=ac.createGain();gn.gain.value=cfg.volume;x.connect(gn);gn.connect(ac.destination);st.src=x;const d=out.audio.length/out.sampling_rate/x.playbackRate.value*1000+2000;const wd=setTimeout(r,d);x.onended=()=>{clearTimeout(wd);r();};x.start();});
+    if(gm)set("loading");
     let nx=gen(st.idx);
     while(st.idx<st.chunks.length){
       const out=await nx;if(my!==st.sess)return;
@@ -6382,7 +6437,7 @@ async function runMMS(my,res){
       st.idx++;o.onchunk&&o.onchunk(st.idx,st.chunks.length);
     }
     st.res=null;set("idle");o.onend&&o.onend();res({ok:true});
-  }catch(e){if(my!==st.sess)return;console.warn("[MMS] brauzer ovoziga o'tildi:",e&&e.message);err("mms",e&&e.message);if(l==="uz"&&!cfg.approx&&!load().some(isUz)){st.res=null;set("idle");return res({ok:false,reason:"no-uz-voice"});}st.eng="browser";run(my,res);}
+  }catch(e){if(my!==st.sess)return;console.warn(gm?"[Gemini TTS] qurilma ovoziga o'tildi:":"[MMS] brauzer ovoziga o'tildi:",e&&e.message);err(gm?"gemini":"mms",e&&e.message);if(gm){gemFail(e);try{const rest=st.chunks.slice(st.idx).join(" ");st.chunks=chunks(rest,170);st.idx=0;}catch(x){}}if(l==="uz"&&!cfg.approx&&!load().some(isUz)){st.res=null;set("idle");return res({ok:false,reason:"no-uz-voice"});}st.eng="browser";run(my,res);}
 }
 function run(my,res){
   st.res=res;const o=st.opts;let retries=0;
@@ -6410,30 +6465,32 @@ async function speak(text,o){
   if(!SS||typeof SpeechSynthesisUtterance==="undefined"){err("unsupported","Brauzerda speechSynthesis yo'q");tt("uns","Bu brauzer ovozni qo'llamaydi.");o.onerror&&o.onerror("unsupported");return{ok:false,reason:"unsupported"};}
   if(!cfg.on&&!o.force)return{ok:true,skipped:true};
   if(!act&&!(navigator.userActivation&&navigator.userActivation.hasBeenActive)){err("gesture","Foydalanuvchi bosishi kutilmoqda");return{ok:false,reason:"gesture"};}
-  const lang=["uz","ru","en"].includes(o.lang)?o.lang:detect(text),mm=useMms(lang),t=o.raw?String(text||"").trim():clean(text,lang,mm);
+  const lang=["uz","ru","en"].includes(o.lang)?o.lang:detect(text),mm=useMms(lang);
+  if(lang==="uz"&&!mm&&cfg.engine!=="browser"&&!load().length)await ready(900);
+  const gm=!mm&&useGem(lang),t=o.raw?String(text||"").trim():clean(text,lang,mm);
   if(!t)return{ok:true,empty:true};
-  if(lang==="uz"&&!o.force&&!cfg.approx&&!mm){await ready(2000);if(!load().some(isUz)){err("no-uz-voice","O'zbek ovozi topilmadi");tt("nouz","O'zbek ovozi topilmadi — Android: Sozlamalar → Til → Matndan nutqqa.");return{ok:false,reason:"no-uz-voice"};}}
+  if(lang==="uz"&&!o.force&&!cfg.approx&&!mm&&!gm){await ready(2000);if(!load().some(isUz)){err("no-uz-voice","O'zbek ovozi topilmadi");tt("nouz","O'zbek ovozi topilmadi — Android: Sozlamalar → Til → Matndan nutqqa.");return{ok:false,reason:"no-uz-voice"};}}
   const key=o.key||t.slice(0,80)+"#"+t.length;
   if(st.state==="speaking"&&st.key===key&&Date.now()-st.at<1000)return{ok:true,dup:true};
-  hardStop();const my=st.sess;st.key=key;st.at=Date.now();st.opts=o;st.lang=lang;st.chunks=chunks(t);st.idx=0;
-  st.eng=mm?"mms":"browser";
-  if(!mm)await ready(2000);if(my!==st.sess)return{ok:false,cancelled:true};
-  return new Promise(res=>mm?runMMS(my,res):run(my,res));
+  hardStop();const my=st.sess;st.key=key;st.at=Date.now();st.opts=o;st.lang=lang;st.chunks=chunks(t,gm?380:170);st.idx=0;
+  st.eng=mm?"mms":gm?"gem":"browser";
+  if(!mm&&!gm)await ready(2000);if(my!==st.sess)return{ok:false,cancelled:true};
+  return new Promise(res=>(mm||gm)?runMMS(my,res,gm):run(my,res));
 }
 function pause(){
   if(st.state!=="speaking")return;
-  if(st.eng==="mms"){try{ac&&ac.suspend();}catch(e){}set("paused");return;}
+  if(st.eng==="mms"||st.eng==="gem"){try{ac&&ac.suspend();}catch(e){}set("paused");return;}
   if(AND||!SS.pause){const r=st.res;st.sess++;try{SS.cancel();}catch(e){}st.res=r;st.keep=[];st.native=false;}else{try{SS.pause();}catch(e){}st.native=true;}
   set("paused");
 }
 function resume(){
   if(st.state!=="paused")return;
-  if(st.eng==="mms"){try{ac&&ac.resume();}catch(e){}set("speaking");return;}
+  if(st.eng==="mms"||st.eng==="gem"){try{ac&&ac.resume();}catch(e){}set("speaking");return;}
   if(st.native){try{SS.resume();}catch(e){}st.native=false;set("speaking");return;}
   const r=st.res;if(!r){set("idle");return;}set("speaking");run(++st.sess,r);
 }
 function toggle(text,o,key){
-  if(st.key===key){if(st.state==="speaking")return pause();if(st.state==="paused")return resume();}
+  if(st.key===key){if(st.state==="loading")return hardStop();if(st.state==="speaking")return pause();if(st.state==="paused")return resume();}
   o=Object.assign({},o,{key:key});return speak(text,o);
 }
 function diag(){
@@ -6441,15 +6498,15 @@ function diag(){
   return{secure:window.isSecureContext,standalone:!!(window.matchMedia&&matchMedia("(display-mode: standalone)").matches),ss:saf,utt:typeof SpeechSynthesisUtterance!=="undefined",
     activation:!!(navigator.userActivation&&navigator.userActivation.hasBeenActive),speaking:saf&&SS.speaking,pending:saf&&SS.pending,paused:saf&&SS.paused,
     voices:V.map(x=>({name:x.name,lang:x.lang,local:x.localService,def:x.default,uz:isUz(x)})),count:V.length,hasUz:V.some(isUz),
-    selected:v?{name:v.name,lang:v.lang,uz:isUz(v)}:null,state:st.state,engine:st.eng,cfg:{on:cfg.on,rate:cfg.rate,pitch:cfg.pitch,approx:cfg.approx,engine:cfg.engine},lastErr:lastErr,ua:navigator.userAgent};
+    selected:v?{name:v.name,lang:v.lang,uz:isUz(v)}:null,state:st.state,engine:st.eng,cfg:{on:cfg.on,rate:cfg.rate,pitch:cfg.pitch,approx:cfg.approx,engine:cfg.engine},lastErr:lastErr,gem:{api:!!gemApi(),off:Math.max(0,Math.round((gemOff-Date.now())/1000)),model:cfg.gemModel,voice:cfg.gemVoice,last:gemInfo},ua:navigator.userAgent};
 }
-async function clearCache(){let n=0;try{if(window.caches){for(const k of await caches.keys()){if(/transformers|onnx|mms/i.test(k)){await caches.delete(k);n++;}}}}catch(e){err("cache",e&&e.message);}TT={};MOK.clear();cfg.mms=false;persist();return n;}
+async function clearCache(){let n=0;try{if(window.caches){for(const k of await caches.keys()){if(/transformers|onnx|mms/i.test(k)){await caches.delete(k);n++;}}}}catch(e){err("cache",e&&e.message);}TT={};MOK.clear();GC.clear();cfg.mms=false;persist();return n;}
 const modelState=l=>{const id=mmsId(l)||null;return{id:id,loaded:!!id&&MOK.has(id)};};
-const API={clearCache,modelState,reload:()=>{load();return ready(2500);},diag,mmsLoad,uzCyr,useMms,numRu,numEn,eng:()=>st.eng,respell,numUz,hasUz:()=>load().some(isUz),speak,speakText:speak,stop:hardStop,pause,resume,toggle,clean,detect,chunks,pick,cfg,
+const API={clearCache,modelState,useGem,gemPrefetch:prefetch,GV,reload:()=>{load();return ready(2500);},diag,mmsLoad,uzCyr,useMms,numRu,numEn,eng:()=>st.eng,respell,numUz,hasUz:()=>load().some(isUz),speak,speakText:speak,stop:hardStop,pause,resume,toggle,clean,detect,chunks,pick,cfg,
   state:()=>st.state,key:()=>st.key,voices:()=>load().slice().sort((a,b)=>(isUz(b)-isUz(a))),isUz,ready,
   on:f=>{LS.add(f);return()=>LS.delete(f);},onVoices:f=>{VL.add(f);return()=>VL.delete(f);},
-  set:(k,v)=>{if(k==="on")cfg.on=!!v;else if(k==="rate")cfg.rate=clamp(v,.7,1.3);else if(k==="pitch")cfg.pitch=clamp(v,.8,1.2);else if(k==="volume")cfg.volume=clamp(v,.3,1);else if(k==="voice")cfg.voice=String(v||"").slice(0,200);else if(k==="approx")cfg.approx=!!v;else if(k==="engine"&&["auto","browser","mms"].includes(v))cfg.engine=v;else if(k==="uzModel")cfg.uzModel=/^[\w.-]+\/[\w.-]+$/.test(v||"")?v:"";persist();},
-  info:()=>{const V=load();if(!SS)return"Brauzer ovozni qo'llamaydi.";if(!V.length)return"Ovoz topilmadi: Android Sozlamalar → Til → Matndan nutqqa → Google ovozini o'rnating.";const v=pick("uz");return isUz(v)?"✅ O'zbek ovozi topildi: "+v.name+" ("+v.lang+")":"⚠️ O'zbek ovozi YO'Q. Vaqtincha "+(v?v.name+" ("+v.lang+")":"standart")+" ovozi ishlatilmoqda, talaffuz moslashtirildi. Yaxshi natija uchun telefonga o'zbek ovozini o'rnating.";}};
+  set:(k,v)=>{if(k==="on")cfg.on=!!v;else if(k==="rate")cfg.rate=clamp(v,.7,1.3);else if(k==="pitch")cfg.pitch=clamp(v,.8,1.2);else if(k==="volume")cfg.volume=clamp(v,.3,1);else if(k==="voice")cfg.voice=String(v||"").slice(0,200);else if(k==="approx")cfg.approx=!!v;else if(k==="engine"&&["auto","browser","mms","gemini"].includes(v))cfg.engine=v;else if(k==="uzModel")cfg.uzModel=/^[\w.-]+\/[\w.-]+$/.test(v||"")?v:"";else if(k==="gemModel")cfg.gemModel=/^[\w.-]{3,60}$/.test(v||"")?v:"gemini-3.8-flash-tts";else if(k==="gemVoice")cfg.gemVoice=GV.includes(v)?v:"Sulafat";persist();},
+  info:()=>{const V=load();if(useGem("uz"))return"☁ O'zbekcha ovoz: Gemini TTS ("+cfg.gemModel+", "+cfg.gemVoice+"), bulutda — sinov rejimi."+(V.some(isUz)?"":" Qurilmada o'zbek ovozi yo'q.")+(gemInfo?" Oxirgi xato: "+gemInfo:"");if(!SS)return"Brauzer ovozni qo'llamaydi.";if(!V.length)return"Ovoz topilmadi: Android Sozlamalar → Til → Matndan nutqqa → Google ovozini o'rnating.";const v=pick("uz");return isUz(v)?"✅ O'zbek ovozi topildi: "+v.name+" ("+v.lang+")":"⚠️ O'zbek ovozi YO'Q. Vaqtincha "+(v?v.name+" ("+v.lang+")":"standart")+" ovozi ishlatilmoqda, talaffuz moslashtirildi. Yaxshi natija uchun telefonga o'zbek ovozini o'rnating.";}};
 window.MaryamTTS=API;window.speakText=speak;
 window.speakUzbek=(t,o)=>speak(t,Object.assign({lang:"uz"},o));
 window.cleanUzbekSpeechText=t=>clean(t,"uz");
@@ -6468,7 +6525,7 @@ function wire(){
   });
   new MutationObserver(add).observe(root,{childList:true});add();
 }
-API.on((s,k)=>document.querySelectorAll(".tts-btn").forEach(b=>{b.textContent=b.dataset.key===k?(s==="speaking"?"⏸":s==="paused"?"▶":"🔊"):"🔊";}));
+API.on((s,k)=>document.querySelectorAll(".tts-btn").forEach(b=>{b.textContent=b.dataset.key===k?(s==="speaking"?"⏸":s==="paused"?"▶":s==="loading"?"⏳":"🔊"):"🔊";}));
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",wire);else wire();
 })();
 </script>
@@ -6927,7 +6984,7 @@ root.MaryamBoard={create,expand,prepPlot,compile,version:"1.0"};
 const $=id=>document.getElementById(id);
 const MODELS=["gemini-3.5-flash-lite","gemini-3.7-flash","gemini-3.8-flash","gemini-3.5-flash"];
 const LANGS={uz:["O'zbekcha","uz-UZ"],ru:["Русский","ru-RU"],en:["English","en-US"]};
-const LT={uz:"Javob tili: faqat o'zbek tili (lotin yozuvi), sodda va aniq, qisqa gaplar bilan; apostrof sifatida faqat ' belgisini ishlat; ruscha/inglizcha so'zlarni aralashtirma.",ru:"Язык ответа: только русский, простые короткие предложения, без смешивания с другими языками.",en:"Answer language: English only, simple short sentences, no mixing with other languages."};
+const LT={uz:"Javob tili: faqat o'zbek tili (lotin yozuvi), sodda va aniq, qisqa gaplar bilan; apostrof sifatida faqat ' belgisini ishlat; ruscha/inglizcha so'zlarni aralashtirma. Ovoz chiqarib o'qiladigan matnda raqam, qisqartma va maxsus belgilarni so'z bilan yoz; har gap 18 so'zdan oshmasin; o'qituvchi tabiiy og'zaki nutq ohangida, o'zbek adabiy talaffuzida gapirsin.",ru:"Язык ответа: только русский, простые короткие предложения, без смешивания с другими языками.",en:"Answer language: English only, simple short sentences, no mixing with other languages."};
 const SUBJ=["Umumiy","Matematika","Fizika","Biologiya","Tarix","Informatika","Ingliz tili"];
 const LEVEL=["Boshlang'ich","5–6-sinf","7–9-sinf","10–11-sinf","Universitet"];
 let api=null,uid=null,S={n:10,diff:"O'rta"},cur=null,rec=null,gen=0;
@@ -7131,7 +7188,7 @@ async function home(){
   '<div class="ust-row"><select id="uS">'+opt(SUBJ,S.uS)+'</select><select id="uL">'+opt(LEVEL,S.uL||"7–9-sinf")+'</select><select id="uG">'+Object.keys(LANGS).map(k=>'<option value="'+k+'"'+(S.uG===k?" selected":"")+'>'+LANGS[k][0]+'</option>').join("")+'</select></div>'+
   '<div class="ust-sm">Savollar soni</div><div class="ust-row" id="uN">'+[10,20,30].map(n=>'<button type="button" class="ust-chip'+(S.n===n?" on":"")+'" data-n="'+n+'">'+n+'</button>').join("")+'</div>'+
   '<div class="ust-sm">Qiyinlik</div><div class="ust-row" id="uD">'+["Oson","O'rta","Qiyin"].map(n=>'<button type="button" class="ust-chip'+(S.diff===n?" on":"")+'" data-d="'+n+'">'+n+'</button>').join("")+'</div>'+
-  '<button class="ust-btn" data-act="lesson">🎓 Interaktiv dars</button><button class="ust-btn alt" data-act="test">📝 Mavzu bo\'yicha test</button><button class="ust-btn alt" data-act="cards">🗂 Kartochkalar</button><button class="ust-btn alt" data-act="sample">▶ Namuna dars (videodagi): Kvadrat funksiya</button></div><div class="ust-card ust-vs"><div class="ust-vh"><b>🔊 Ovoz</b><button type="button" class="ust-sw'+(MaryamTTS.cfg.on?" on":"")+'" id="uOn" data-act="ttsOn" role="switch" aria-label="Ovoz" aria-checked="'+(MaryamTTS.cfg.on?"true":"false")+'"><i></i></button></div><div class="ust-vr"><span>Tezlik</span><input type="range" id="uRt" min="0.7" max="1.3" step="0.05" value="'+MaryamTTS.cfg.rate+'"><b id="uRv">'+MaryamTTS.cfg.rate+'×</b></div><select id="uVo" aria-label="Ovoz turi"></select><button class="ust-btn" data-act="vtest" style="margin-top:10px">▶ Test ovozi</button><div class="ust-sm" id="uVs" style="margin-top:8px">'+esc(MaryamTTS.info())+'</div><details class="ust-adv"><summary>Qo\'shimcha sozlamalar</summary><div class="ust-vr"><span>Balandlik</span><input type="range" id="uVl" min="0.3" max="1" step="0.05" value="'+MaryamTTS.cfg.volume+'"><b id="uVv">'+Math.round(MaryamTTS.cfg.volume*100)+'%</b></div><div class="ust-vr" id="uPr"'+(MaryamTTS.useMms(val("uG")||"uz")?' style="display:none"':'')+'><span>Pitch</span><input type="range" id="uPt" min="0.8" max="1.2" step="0.05" value="'+MaryamTTS.cfg.pitch+'"><b id="uPv">'+MaryamTTS.cfg.pitch+'</b></div><div class="ust-sm">Balandlik va pitch\'ni ba\'zi qurilma ovozlari e\'tiborsiz qoldirishi mumkin. Ular ovoz sifatini yaxshilamaydi.</div><label class="ust-sm" style="display:block;margin-top:10px">Dvigatel</label><select id="uEn"><option value="auto">Avtomatik</option><option value="browser">Qurilma (brauzer) ovozi</option><option value="mms">MMS (Meta, brauzerda)</option></select><button class="ust-btn alt" data-act="mmsLoad">⬇ Modelni yuklash</button><div class="ust-sm" id="uMs" style="margin-top:6px">'+esc(msText())+'</div><input class="ust-in" id="uUm" placeholder="O\'zbek ONNX model (repo ID, ixtiyoriy)" value="'+esc(MaryamTTS.cfg.uzModel)+'"><button type="button" class="ust-chip'+(MaryamTTS.cfg.approx?" on":"")+'" data-act="approx" style="width:100%;margin-top:8px">'+(MaryamTTS.cfg.approx?"O\'zbek ovozi yo\'q bo\'lsa: taxminiy ovoz YOQILGAN":"O\'zbek ovozi yo\'q bo\'lsa: JIM (taxminiy ovoz o\'chirilgan)")+'</button><button class="ust-btn alt" data-act="clrCache">🗑 Model keshini tozalash</button><button class="ust-btn alt" data-act="diag">🩺 Ovoz diagnostikasi</button><div class="ust-sm" id="uDg"></div></details></div';fillVoices();
+  '<button class="ust-btn" data-act="lesson">🎓 Interaktiv dars</button><button class="ust-btn alt" data-act="test">📝 Mavzu bo\'yicha test</button><button class="ust-btn alt" data-act="cards">🗂 Kartochkalar</button><button class="ust-btn alt" data-act="sample">▶ Namuna dars (videodagi): Kvadrat funksiya</button></div><div class="ust-card ust-vs"><div class="ust-vh"><b>🔊 Ovoz</b><button type="button" class="ust-sw'+(MaryamTTS.cfg.on?" on":"")+'" id="uOn" data-act="ttsOn" role="switch" aria-label="Ovoz" aria-checked="'+(MaryamTTS.cfg.on?"true":"false")+'"><i></i></button></div><div class="ust-vr"><span>Tezlik</span><input type="range" id="uRt" min="0.7" max="1.3" step="0.05" value="'+MaryamTTS.cfg.rate+'"><b id="uRv">'+MaryamTTS.cfg.rate+'×</b></div><select id="uVo" aria-label="Ovoz turi"></select><button class="ust-btn" data-act="vtest" style="margin-top:10px">▶ Test ovozi</button><div class="ust-sm" id="uVs" style="margin-top:8px">'+esc(MaryamTTS.info())+'</div><details class="ust-adv"><summary>Qo\'shimcha sozlamalar</summary><div class="ust-vr"><span>Balandlik</span><input type="range" id="uVl" min="0.3" max="1" step="0.05" value="'+MaryamTTS.cfg.volume+'"><b id="uVv">'+Math.round(MaryamTTS.cfg.volume*100)+'%</b></div><div class="ust-vr" id="uPr"'+(MaryamTTS.useMms(val("uG")||"uz")?' style="display:none"':'')+'><span>Pitch</span><input type="range" id="uPt" min="0.8" max="1.2" step="0.05" value="'+MaryamTTS.cfg.pitch+'"><b id="uPv">'+MaryamTTS.cfg.pitch+'</b></div><div class="ust-sm">Balandlik va pitch\'ni ba\'zi qurilma ovozlari e\'tiborsiz qoldirishi mumkin. Ular ovoz sifatini yaxshilamaydi.</div><label class="ust-sm" style="display:block;margin-top:10px">Dvigatel</label><select id="uEn"><option value="auto">Avtomatik (qurilma → Gemini)</option><option value="browser">Qurilma (brauzer) ovozi</option><option value="gemini">Gemini (bulutda, o\'zbekcha — sinov)</option><option value="mms">MMS (Meta, brauzerda)</option></select><label class="ust-sm" style="display:block;margin-top:10px">Gemini ovozi va modeli</label><select id="uGv">'+MaryamTTS.GV.map(function(n){return'<option'+(n===MaryamTTS.cfg.gemVoice?' selected':'')+'>'+n+'</option>';}).join('')+'</select><input class="ust-in" id="uGm" placeholder="Gemini TTS model ID" value="'+esc(MaryamTTS.cfg.gemModel)+'"><button class="ust-btn alt" data-act="mmsLoad">⬇ Modelni yuklash</button><div class="ust-sm" id="uMs" style="margin-top:6px">'+esc(msText())+'</div><input class="ust-in" id="uUm" placeholder="O\'zbek ONNX model (repo ID, ixtiyoriy)" value="'+esc(MaryamTTS.cfg.uzModel)+'"><button type="button" class="ust-chip'+(MaryamTTS.cfg.approx?" on":"")+'" data-act="approx" style="width:100%;margin-top:8px">'+(MaryamTTS.cfg.approx?"O\'zbek ovozi yo\'q bo\'lsa: taxminiy ovoz YOQILGAN":"O\'zbek ovozi yo\'q bo\'lsa: JIM (taxminiy ovoz o\'chirilgan)")+'</button><button class="ust-btn alt" data-act="clrCache">🗑 Model keshini tozalash</button><button class="ust-btn alt" data-act="diag">🩺 Ovoz diagnostikasi</button><div class="ust-sm" id="uDg"></div></details></div';fillVoices();
   if(api&&uid){try{const p=await api.getDoc([...base(),"progress","last"]);const el=$("ustLast"),tot=Math.floor(Number(p&&p.total)),stp=Math.floor(Number(p&&p.step));if(g!==gen||!p||!p.title||!el)return;const okN=tot>=1&&stp>=1&&stp<=tot;el.innerHTML='<div class="ust-card"><div class="ust-sm">Oxirgi darsingiz'+(tot>=1?" · "+esc(stepsLabel(tot)):"")+'</div><b>'+esc(p.title)+(okN?' — '+(p.done?'✅ yakunlangan':stp+'/'+tot):'')+'</b><button class="ust-btn" data-act="resume">'+(p.done?'↶ Qayta ko\'rish':'▶ Davom etish')+'</button></div>';}catch(e){console.warn("[Ustoz] oxirgi dars:",String(e&&e.code||e&&e.message||"").slice(0,120));}}
 }
 /* ---------- interaktiv dars ---------- */
@@ -7252,6 +7309,7 @@ function mkBoard(){
   board.lesson=L;board.setSound(snd);
 }
 /* ovoz: bosqichning gaplari ketma-ket o'qiladi; hammasi tugagach doska 'voiceEnded' oladi (pauza → shu gapdan davom) */
+function pre(q,i){try{if((val("uG")||"uz")!=="uz"||!snd)return;let n=q[i+1];if(!n&&cur&&cur.d&&cur.d.steps[cur.i+1])n=String(cur.d.steps[cur.i+1].voice||"").split(/(?<=[.!?…])\s+/).filter(Boolean)[0];if(n)MaryamTTS.gemPrefetch(n,"uz");}catch(e){}}
 function speakStep(i,resume){
   if(!cur||!board)return;const q=cur.sents||[],tok=cur.tok=(cur.tok||0)+1;if(!resume)vIdx=0;
   (function run(){
@@ -7259,7 +7317,7 @@ function speakStep(i,resume){
     if(vIdx>=q.length){if(board)board.voiceEnded();return;}
     const txt=q[vIdx];let done=false;
     const nx=()=>{if(done||!cur||cur.tok!==tok||!play)return;done=true;vIdx++;tm.push(setTimeout(run,T(250*SM())));};
-    if(snd&&txt){speak(txt,nx);tm.push(setTimeout(nx,T(txt.length*140*SM()/1.3+4000)));}
+    if(snd&&txt){speak(txt,nx);pre(q,vIdx);tm.push(setTimeout(nx,T(txt.length*140*SM()/1.3+(MaryamTTS.useGem(val("uG")||"uz")?14000:4000))));}
     else tm.push(setTimeout(nx,T(Math.max(1200,txt.length*65)*SM()/1.3)));
   })();
 }
@@ -7268,7 +7326,7 @@ function stepEnded(i){
   if(task(cur.d.steps[i])){const a=$("uA");if(a)a.innerHTML='<div class="ust-card">✍ Mashqni bajaring: javobni yozib ➤ bosing yoki ⋯ menyudan 🎙 bilan ayting.</div><button class="ust-btn alt" data-act="ask">❓ Savol berish</button>';return;}
   adv();
 }
-function begin(){if(!cur||!cur.gate)return;if(!MaryamTTS.hasUz()&&!window.__noUzWarn){window.__noUzWarn=1;toast("O'zbek ovozi topilmadi — taxminiy talaffuz ishlatiladi");}cur.gate=false;play=true;const tok=cur.tok=(cur.tok||0)+1,a=$("uA");if(a)a.innerHTML="";speak(greet(),()=>{if(cur&&cur.tok===tok&&play&&board)board.start(cur.i,{task:!!task(cur.d.steps[cur.i])});});}
+function begin(){if(!cur||!cur.gate)return;if(!MaryamTTS.hasUz()&&!MaryamTTS.useGem(val("uG")||"uz")&&!window.__noUzWarn){window.__noUzWarn=1;toast("O'zbek ovozi topilmadi — taxminiy talaffuz ishlatiladi");}cur.gate=false;play=true;const tok=cur.tok=(cur.tok||0)+1,a=$("uA");if(a)a.innerHTML="";speak(greet(),()=>{if(cur&&cur.tok===tok&&play&&board)board.start(cur.i,{task:!!task(cur.d.steps[cur.i])});});}
 function step(i){
   if(!cur||!cur.d||!Array.isArray(cur.d.steps)||!cur.d.steps.length)return home();
   i=Math.min(Math.max(Math.floor(+i)||0,0),cur.d.steps.length-1);
@@ -7374,6 +7432,7 @@ const MOODS={speaking:"🔊 Tushuntiryapman",listening:"🎙️ Tinglayapman",th
 function diagHtml(){
   const d=MaryamTTS.diag(),y=b=>b?"✅":"❌";
   let h='<b>Diagnostika</b><br>speechSynthesis '+y(d.ss)+' · Utterance '+y(d.utt)+' · HTTPS '+y(d.secure)+' · PWA (standalone) '+y(d.standalone)+' · bosish '+y(d.activation)+'<br>Holat: '+esc(d.state)+' ('+esc(d.engine)+') · speaking='+d.speaking+' pending='+d.pending+' paused='+d.paused+'<br>Topilgan ovozlar soni: <b>'+d.count+'</b><br>O\'zbekcha ovoz: <b>'+(d.hasUz?"bor ✅":"YO\'Q ❌")+'</b><br>Tanlangan: <b>'+(d.selected?esc(d.selected.name+" ("+d.selected.lang+")")+(d.selected.uz?"":" — o\'zbekcha emas"):"yo\'q")+'</b><br>'+d.voices.map(v=>esc(v.name)+" — "+esc(v.lang)+(v.uz?" ✅ uz":"")+(v.local?" · lokal":" · tarmoq")+(v.def?" · default":"")).join("<br>")+'<br>Oxirgi xato: <b>'+(d.lastErr?esc(d.lastErr.code+" — "+d.lastErr.detail+" ("+d.lastErr.at+")"):"yo\'q")+'</b>';
+  h+='<br>Gemini ovozi: <b>'+(d.gem.api?'ulangan':'AI ulanmagan')+'</b> · model '+esc(d.gem.model)+' · ovoz '+esc(d.gem.voice)+(d.gem.off?' · vaqtincha o\'chirilgan ('+d.gem.off+' s)':'')+(d.gem.last?'<br>Gemini oxirgi xato: '+esc(d.gem.last):'');
   if(!d.count)h+='<br>⚠ Ovozlar ro\'yxati bo\'sh. Android: Sozlamalar → Til → Matndan nutqqa → "Speech Services by Google" o\'rnatilgan va yoqilganini tekshiring, ovoz ma\'lumotlarini yuklab oling, so\'ng Chrome yoki PWA\'ni to\'liq yopib qayta oching.';
   else if(!d.hasUz)h+='<br>⚠ Qurilmada o\'zbek ovozi yo\'q. Android: Sozlamalar → Til → Matndan nutqqa → dvigatel sozlamalari (⚙) → til ro\'yxatida o\'zbek ovozi bor bo\'lsa yuklab oling. Bo\'lmasa bu qurilma o\'zbekcha gapira olmaydi: hozirgi ovoz boshqa til ovozi, talaffuz taxminiy.';
   return h;
@@ -7516,7 +7575,7 @@ function init(){
   if(window.MaryamFBReady)window.MaryamFBReady.then(r=>{if(r&&r.ok){api=r.api;api.onAuthChanged(u=>{const nu=u?u.uid:null;if(prevUid&&nu&&nu!==prevUid){cur=null;S.uT="";gen++;pend=0;}uid=nu;if(nu)prevUid=nu;if(!u)close();});}}).catch(()=>{});
   MaryamTTS.onVoices(fillVoices);MaryamTTS.ready(2000).then(fillVoices);
   body().addEventListener("input",e=>{if(e.target.id==='uRt'){MaryamTTS.set('rate',e.target.value);$('uRv').textContent=MaryamTTS.cfg.rate+'×';}if(e.target.id==='uVl'){MaryamTTS.set('volume',e.target.value);$('uVv').textContent=Math.round(MaryamTTS.cfg.volume*100)+'%';}if(e.target.id==='uPt'){MaryamTTS.set('pitch',e.target.value);$('uPv').textContent=MaryamTTS.cfg.pitch;}});
-  body().addEventListener("change",e=>{if(e.target.id==='uVo')MaryamTTS.set('voice',e.target.value);if(e.target.id==='uEn'){MaryamTTS.set('engine',e.target.value);const pr=$('uPr');if(pr)pr.style.display=MaryamTTS.useMms(val('uG')||'uz')?'none':'';}if(e.target.id==='uUm'){MaryamTTS.set('uzModel',e.target.value.trim());e.target.value=MaryamTTS.cfg.uzModel;}});
+  body().addEventListener("change",e=>{if(e.target.id==='uVo')MaryamTTS.set('voice',e.target.value);if(e.target.id==='uGv')MaryamTTS.set('gemVoice',e.target.value);if(e.target.id==='uGm'){MaryamTTS.set('gemModel',e.target.value.trim());e.target.value=MaryamTTS.cfg.gemModel;}if(e.target.id==='uEn'){MaryamTTS.set('engine',e.target.value);const pr=$('uPr');if(pr)pr.style.display=MaryamTTS.useMms(val('uG')||'uz')?'none':'';}if(e.target.id==='uUm'){MaryamTTS.set('uzModel',e.target.value.trim());e.target.value=MaryamTTS.cfg.uzModel;}});
   window.__ust={board:()=>board,demo:(d)=>{$("ustPanel").classList.add("on");cur={d:normLesson(d,d.title,true),i:0,topic:d.title,gate:false,rq:0};play=true;step(0);},parseJSON,compile,graph,normLesson,normPlot,stage:()=>stg,stepsLabel,lessonPrompt,friendly,LESSON};
 }
 init();
