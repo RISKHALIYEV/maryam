@@ -72,6 +72,48 @@
 .pm-done h3{margin:0;font-size:18px}
 @media(max-width:640px){.pm-back{padding:0;align-items:flex-end}.pm-sheet{max-width:none;border-radius:24px 24px 0 0;max-height:94vh;max-height:94dvh}}
 @media(max-width:520px){.pm-grid{grid-template-columns:1fr}}
+
+/* ===== MARYAM GAME ENGINE (beta) — barcha qoidalar .mge-* bilan cheklangan ===== */
+.mge-root{position:fixed;inset:0;z-index:2600;display:none;flex-direction:column;background:var(--bg,#2B2319);color:var(--text,#EDE1C9);font-family:var(--sans,system-ui,sans-serif);font-size:15px;line-height:1.35;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);overscroll-behavior:none}
+.mge-root.mge-open{display:flex}
+.mge-root *{box-sizing:border-box}
+.mge-btn{background:var(--bg-panel,#33291D);color:var(--text,#EDE1C9);border:1px solid var(--border,#4A3C29);border-radius:8px;padding:9px 12px;min-height:40px;font:inherit;cursor:pointer;touch-action:manipulation}
+.mge-btn:active{filter:brightness(1.25)}
+.mge-pri{background:var(--accent,#B5482F);border-color:var(--accent-hover,#D0583C);color:#fff}
+.mge-dng{color:#ff8f7a}
+.mge-top{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--bg-sidebar,#241D15);border-bottom:1px solid var(--border,#4A3C29)}
+.mge-pname{flex:1;min-width:0;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mge-fps{color:var(--text-muted,#B4A388);font-size:12px}
+.mge-dot{width:10px;height:10px;border-radius:50%;background:var(--ok,#7A9B6E);flex:none}.mge-dot.mge-dirty{background:#f2c94c}
+.mge-stage{flex:1;min-height:0;position:relative}
+.mge-stage canvas{width:100%;height:100%;display:block;touch-action:none;outline:none}
+.mge-noview{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;color:#f2c94c}
+.mge-bar{display:flex;gap:6px;padding:6px 8px;overflow-x:auto;background:var(--bg-sidebar,#241D15);border-top:1px solid var(--border,#4A3C29)}
+.mge-bar .mge-btn{white-space:nowrap;flex:none}
+.mge-tabs{display:flex;background:var(--bg-sidebar,#241D15)}
+.mge-tab{flex:1;border:0;border-radius:0;background:transparent;color:var(--text-muted,#B4A388);border-bottom:2px solid transparent;padding:10px 4px}
+.mge-tab.mge-on{color:var(--text,#EDE1C9);border-bottom-color:var(--accent,#B5482F)}
+.mge-panel{height:34vh;height:34dvh;min-height:150px;background:var(--bg,#2B2319);border-top:1px solid var(--border,#4A3C29);overflow:auto;padding:8px}
+.mge-collapsed .mge-panel{display:none}
+.mge-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+.mge-row>input[type=text],.mge-row>select{flex:1;min-width:0}
+.mge-root input,.mge-root select{background:var(--bg-input,#20190F);color:var(--text,#EDE1C9);border:1px solid var(--border,#4A3C29);border-radius:8px;padding:8px;min-height:40px;font:inherit}
+.mge-row3{display:grid;grid-template-columns:84px 1fr 1fr 1fr;gap:6px;align-items:center;margin-bottom:8px}
+.mge-row3 input{min-width:0;width:100%}
+.mge-lb{color:var(--text-muted,#B4A388);font-size:13px}
+.mge-item{display:block;width:100%;text-align:left;margin-bottom:6px}
+.mge-item.mge-on{border-color:var(--accent,#B5482F);background:var(--accent-soft,rgba(181,72,47,.18))}
+.mge-ty{color:var(--text-muted,#B4A388);font-size:12px}
+.mge-hint{color:var(--text-muted,#B4A388);padding:8px 2px}
+.mge-chk{display:flex;gap:8px;align-items:center;margin:4px 0 10px;color:var(--text-muted,#B4A388)}
+.mge-chk input{min-height:0}
+.mge-proj{background:var(--bg-panel,#33291D);border:1px solid var(--border,#4A3C29);border-radius:10px;padding:8px;margin-bottom:8px}
+.mge-proj.mge-on{border-color:var(--accent,#B5482F)}
+.mge-pn{font-weight:700;margin-bottom:6px;word-break:break-word}
+.mge-pb{display:flex;gap:6px;flex-wrap:wrap}
+#mge-log{font:12px/1.4 var(--mono,ui-monospace,monospace)}
+.mge-ln.mge-ok{color:var(--ok,#7A9B6E)}.mge-ln.mge-err{color:#ff8f7a}.mge-ln.mge-warn{color:#f2c94c}.mge-tm{color:var(--text-faint,#7C6E58)}
+.mge-root [hidden]{display:none!important}
 </style>
 </head>
 <body class="auth-loading">
@@ -228,6 +270,10 @@
               <button class="plus-menu-item" id="menuMotionBtn" type="button">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
                 <span>Motion dizayn yaratish</span>
+              </button>
+              <button class="plus-menu-item" id="menuGameBtn" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="11" rx="5"/><path d="M7 10v5M4.5 12.5h5"/><circle cx="16" cy="11.5" r=".8"/><circle cx="18.5" cy="13.5" r=".8"/></svg>
+                <span>O'yin dvigateli (beta)</span>
               </button>
               <button class="plus-menu-item" id="menuConnectorBtn" type="button">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.07 0l2.83-2.83a5 5 0 00-7.07-7.07L11.5 4.5"/><path d="M14 11a5 5 0 00-7.07 0L4.1 13.83a5 5 0 007.07 7.07L12.5 19.5"/></svg>
@@ -649,6 +695,510 @@ window.MaryamFBReady.then(b=>{
     if(uid)startWatch();else{loading=false;update()}
   });
 });
+})();
+</script>
+
+<!-- ===== MARYAM GAME ENGINE (beta): overlay bo'limi. Boshqa bo'limlarga tegmaydi ===== -->
+<div class="mge-root" id="mge-root" role="dialog" aria-modal="true" aria-label="Maryam Game Engine" aria-hidden="true">
+  <div class="mge-top"><button class="mge-btn" id="mge-close" type="button" aria-label="Suhbatga qaytish">←</button><span class="mge-dot" id="mge-dot"></span><div class="mge-pname" id="mge-pname">Game Engine</div><span class="mge-fps" id="mge-fps"></span><button class="mge-btn" id="mge-save" type="button">Saqlash</button></div>
+  <div class="mge-stage" id="mge-stage"><canvas id="mge-cv"></canvas></div>
+  <div class="mge-bar"><button class="mge-btn" type="button" data-mge-add="cube">+ Kub</button><button class="mge-btn" type="button" data-mge-add="sphere">+ Shar</button><button class="mge-btn" type="button" data-mge-add="plane">+ Tekislik</button><button class="mge-btn" type="button" data-mge-add="cylinder">+ Silindr</button><button class="mge-btn mge-dng" type="button" id="mge-del">O'chirish</button></div>
+  <div class="mge-tabs"><button class="mge-btn mge-tab" type="button" data-t="hier">Obyektlar</button><button class="mge-btn mge-tab" type="button" data-t="insp">Xususiyat</button><button class="mge-btn mge-tab" type="button" data-t="proj">Loyiha</button><button class="mge-btn mge-tab" type="button" data-t="log">Konsol</button></div>
+  <div class="mge-panel" id="mge-panel"><div class="mge-pp" id="mge-p-hier"></div><div class="mge-pp" id="mge-p-insp" hidden></div><div class="mge-pp" id="mge-p-proj" hidden></div><div class="mge-pp" id="mge-p-log" hidden><div id="mge-log"></div></div></div>
+  <input type="file" id="mge-file" accept=".json,application/json" hidden>
+</div>
+<script>
+/* ===== MARYAM GAME ENGINE (beta) — alohida izolyatsiyalangan modul ===== */
+(function(){
+"use strict";
+// ---- engine/Serialization.js ----
+// Loyiha formati: versiyalangan, tekshiriladigan, migratsiyaga tayyor.
+const ENGINE_VERSION = "0.1.0";
+const FORMAT_VERSION = 1;
+const ENTITY_TYPES = ["empty","cube","sphere","plane","cylinder","camera","light","sprite","model"];
+
+function newId(prefix = "id") {
+  const r = (globalThis.crypto && crypto.randomUUID) ? crypto.randomUUID().replace(/-/g,"").slice(0,12)
+    : Math.random().toString(36).slice(2,14);
+  return prefix + "_" + r;
+}
+
+function createProject({ name = "Yangi loyiha", type = "3d" } = {}) {
+  if (!["2d","3d"].includes(type)) throw new Error("Loyiha turi '2d' yoki '3d' bo'lishi kerak");
+  const now = Date.now();
+  const scene = { id: newId("sc"), name: "Asosiy sahna", entities: [] };
+  return {
+    formatVersion: FORMAT_VERSION, engineVersion: ENGINE_VERSION,
+    meta: { id: newId("gp"), name: String(name).trim() || "Yangi loyiha", type, createdAt: now, updatedAt: now },
+    settings: { lowPerformance: false, startScene: scene.id },
+    scenes: [scene], scripts: [], assets: []
+  };
+}
+
+const isVec3 = v => Array.isArray(v) && v.length === 3 && v.every(Number.isFinite);
+
+function validateProject(p) {
+  const errors = [];
+  if (!p || typeof p !== "object") return { ok: false, errors: ["Loyiha obyekt emas"] };
+  if (!Number.isInteger(p.formatVersion)) errors.push("formatVersion yo'q");
+  if (!p.meta || !p.meta.id || !p.meta.name) errors.push("meta.id yoki meta.name yo'q");
+  if (!Array.isArray(p.scenes) || !p.scenes.length) errors.push("Kamida bitta sahna kerak");
+  const ids = new Set();
+  for (const sc of p.scenes || []) {
+    if (!sc.id || ids.has(sc.id)) errors.push("Sahna ID takrorlangan yoki yo'q: " + sc.id);
+    ids.add(sc.id);
+    const eids = new Set((sc.entities || []).map(e => e.id));
+    for (const e of sc.entities || []) {
+      if (!e.id) errors.push("Obyekt ID yo'q (" + sc.name + ")");
+      if (!ENTITY_TYPES.includes(e.type)) errors.push("Noma'lum obyekt turi: " + e.type);
+      const t = e.transform || {};
+      if (!isVec3(t.position) || !isVec3(t.rotation) || !isVec3(t.scale)) errors.push("Transform noto'g'ri: " + e.id);
+      if (e.parent && !eids.has(e.parent)) errors.push("Ota obyekt topilmadi: " + e.id);
+    }
+  }
+  if (p.settings && p.settings.startScene && !ids.has(p.settings.startScene)) errors.push("startScene mavjud emas");
+  return { ok: errors.length === 0, errors };
+}
+
+function migrateProject(p) {
+  if (!p || typeof p !== "object") throw new Error("Loyiha o'qib bo'lmadi");
+  if (p.formatVersion > FORMAT_VERSION) throw new Error("Loyiha yangiroq dvigatel versiyasida yaratilgan (format " + p.formatVersion + ")");
+  return p; // hozircha faqat format 1 bor; keyingi versiyalar uchun joy
+}
+
+function serialize(p) { return JSON.stringify(p); }
+
+function deserialize(str) {
+  let p; try { p = JSON.parse(str); } catch (e) { throw new Error("JSON buzilgan: " + e.message); }
+  p = migrateProject(p);
+  const v = validateProject(p);
+  if (!v.ok) throw new Error("Loyiha yaroqsiz: " + v.errors.join("; "));
+  return p;
+}
+
+// ---- engine/SceneManager.js ----
+// Sahna va obyektlar ustida amallar. Har amal {ok:true,...} yoki Error qaytaradi
+// (AI buyruqlari keyinchalik aynan shu tasdiqqa tayanadi).
+
+const findScene = (p, id) => { const s = p.scenes.find(x => x.id === id); if (!s) throw new Error("Sahna topilmadi: " + id); return s; };
+const findEntity = (s, id) => { const e = s.entities.find(x => x.id === id); if (!e) throw new Error("Obyekt topilmadi: " + id); return e; };
+const vec3 = (v, name) => { if (!Array.isArray(v) || v.length !== 3 || !v.every(Number.isFinite)) throw new Error(name + " [x,y,z] sonlar bo'lishi kerak"); return v.slice(); };
+
+function createScene(p, name = "Yangi sahna") {
+  const s = { id: newId("sc"), name: String(name).trim() || "Yangi sahna", entities: [] };
+  p.scenes.push(s); return { ok: true, sceneId: s.id };
+}
+
+function deleteScene(p, sceneId) {
+  if (p.scenes.length === 1) throw new Error("Oxirgi sahnani o'chirib bo'lmaydi");
+  const s = findScene(p, sceneId); p.scenes.splice(p.scenes.indexOf(s), 1);
+  if (p.settings.startScene === sceneId) p.settings.startScene = p.scenes[0].id;
+  return { ok: true };
+}
+
+function createEntity(p, sceneId, { type = "empty", name, position = [0,0,0], rotation = [0,0,0], scale = [1,1,1], parent = null } = {}) {
+  const s = findScene(p, sceneId);
+  if (!ENTITY_TYPES.includes(type)) throw new Error("Noma'lum obyekt turi: " + type);
+  if (parent) findEntity(s, parent);
+  const e = { id: newId("en"), name: name || type, type, parent,
+    transform: { position: vec3(position,"position"), rotation: vec3(rotation,"rotation"), scale: vec3(scale,"scale") },
+    components: {}, scripts: [] };
+  s.entities.push(e); return { ok: true, entityId: e.id };
+}
+
+function deleteEntity(p, sceneId, entityId) {
+  const s = findScene(p, sceneId); findEntity(s, entityId);
+  const kill = new Set([entityId]); let grew = true;
+  while (grew) { grew = false; for (const e of s.entities) if (e.parent && kill.has(e.parent) && !kill.has(e.id)) { kill.add(e.id); grew = true; } }
+  s.entities = s.entities.filter(e => !kill.has(e.id));
+  return { ok: true, removed: kill.size };
+}
+
+function updateTransform(p, sceneId, entityId, patch) {
+  const e = findEntity(findScene(p, sceneId), entityId);
+  if (!patch || typeof patch !== "object") throw new Error("patch kerak");
+  for (const k of ["position","rotation","scale"]) if (patch[k] !== undefined) e.transform[k] = vec3(patch[k], k);
+  return { ok: true, transform: e.transform };
+}
+
+function renameEntity(p, sceneId, entityId, name) {
+  const e = findEntity(findScene(p, sceneId), entityId);
+  if (!String(name).trim()) throw new Error("Nom bo'sh bo'lmasin");
+  e.name = String(name).trim(); return { ok: true };
+}
+
+// ---- storage/LocalStorageManager.js ----
+// Saqlash adapterlari. Bir xil interfeys: get/put/delete/list.
+class MemoryStorage {
+  constructor() { this.m = new Map(); }
+  async get(id) { return this.m.has(id) ? this.m.get(id) : null; }
+  async put(id, str) { this.m.set(id, str); }
+  async delete(id) { this.m.delete(id); }
+  async list() { return [...this.m.keys()]; }
+}
+
+class IndexedDBStorage {
+  constructor(dbName = "maryam-game-engine", store = "projects") { this.dbName = dbName; this.store = store; this._db = null; }
+  _open() {
+    if (this._db) return Promise.resolve(this._db);
+    return new Promise((res, rej) => {
+      if (typeof indexedDB === "undefined") return rej(new Error("IndexedDB mavjud emas"));
+      const rq = indexedDB.open(this.dbName, 1);
+      rq.onupgradeneeded = () => rq.result.createObjectStore(this.store);
+      rq.onsuccess = () => { this._db = rq.result; res(this._db); };
+      rq.onerror = () => rej(rq.error || new Error("IndexedDB ochilmadi"));
+    });
+  }
+  async _tx(mode, fn) {
+    const db = await this._open();
+    return new Promise((res, rej) => {
+      const tx = db.transaction(this.store, mode); const rq = fn(tx.objectStore(this.store));
+      tx.oncomplete = () => res(rq ? rq.result : undefined);
+      tx.onerror = () => rej(tx.error); tx.onabort = () => rej(tx.error || new Error("Tranzaksiya bekor qilindi"));
+    });
+  }
+  async get(id) { const r = await this._tx("readonly", s => s.get(id)); return r === undefined ? null : r; }
+  async put(id, str) { await this._tx("readwrite", s => s.put(str, id)); }
+  async delete(id) { await this._tx("readwrite", s => s.delete(id)); }
+  async list() { return (await this._tx("readonly", s => s.getAllKeys())) || []; }
+}
+
+// ---- engine/ProjectManager.js ----
+// Loyihalarni yaratish, ochish, saqlash, nomlash, nusxalash, eksport/import.
+
+class ProjectManager {
+  constructor(storage) { if (!storage) throw new Error("storage adapteri kerak"); this.storage = storage; this.current = null; }
+
+  async create(opts) { const p = createProject(opts); await this._write(p); this.current = p; return p; }
+
+  async _write(p) {
+    const v = validateProject(p);
+    if (!v.ok) throw new Error("Saqlab bo'lmadi, loyiha yaroqsiz: " + v.errors.join("; "));
+    await this.storage.put(p.meta.id, serialize(p));
+  }
+
+  async save(p = this.current) {
+    if (!p) throw new Error("Saqlash uchun ochiq loyiha yo'q");
+    p.meta.updatedAt = Date.now(); await this._write(p); return { ok: true, updatedAt: p.meta.updatedAt };
+  }
+
+  async open(id) {
+    const raw = await this.storage.get(id);
+    if (raw === null) throw new Error("Loyiha topilmadi: " + id);
+    this.current = deserialize(raw); return this.current;
+  }
+
+  async list() {
+    const out = [];
+    for (const id of await this.storage.list()) {
+      try { const p = deserialize(await this.storage.get(id)); out.push({ id, name: p.meta.name, type: p.meta.type, updatedAt: p.meta.updatedAt }); }
+      catch (e) { out.push({ id, name: "(buzilgan loyiha)", broken: true, error: e.message }); }
+    }
+    return out.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  }
+
+  async rename(id, name) {
+    if (!String(name).trim()) throw new Error("Nom bo'sh bo'lmasin");
+    const p = id === (this.current && this.current.meta.id) ? this.current : await this.open(id);
+    p.meta.name = String(name).trim(); await this.save(p); return { ok: true };
+  }
+
+  async duplicate(id) {
+    const src = deserialize(await this.storage.get(id));
+    const copy = JSON.parse(JSON.stringify(src)); const now = Date.now();
+    copy.meta.id = newId("gp"); copy.meta.name = src.meta.name + " (nusxa)"; copy.meta.createdAt = now; copy.meta.updatedAt = now;
+    await this._write(copy); return copy;
+  }
+
+  async remove(id) { await this.storage.delete(id); if (this.current && this.current.meta.id === id) this.current = null; return { ok: true }; }
+
+  exportJSON(p = this.current) { if (!p) throw new Error("Ochiq loyiha yo'q"); return serialize(p); }
+
+  async importJSON(str) {
+    const p = deserialize(str);
+    if (await this.storage.get(p.meta.id) !== null) { p.meta.id = newId("gp"); p.meta.name += " (import)"; }
+    await this._write(p); this.current = p; return p;
+  }
+}
+
+const Scene={createScene,deleteScene,createEntity,deleteEntity,updateTransform,renameEntity};
+// ===================== MARYAM GAME ENGINE — UI + 3D (Babylon.js, lazy) =====================
+const root = document.getElementById("mge-root");
+const $ = s => root.querySelector(s);
+const $$ = s => root.querySelectorAll(s);
+function h(tag, props, ...kids) {
+  const e = document.createElement(tag);
+  for (const k in props || {}) { if (k === "class") e.className = props[k]; else if (k.startsWith("on")) e.addEventListener(k.slice(2), props[k]); else e.setAttribute(k, props[k]); }
+  for (const c of kids.flat()) e.append(c && c.nodeType ? c : String(c == null ? "" : c));
+  return e;
+}
+const isOpen = () => root.classList.contains("mge-open");
+function log(msg, kind) {
+  const box = $("#mge-log"); if (!box) return;
+  const t = new Date().toTimeString().slice(0, 8);
+  box.append(h("div", { class: "mge-ln " + (kind ? "mge-" + kind : "") }, h("span", { class: "mge-tm" }, t + " "), msg));
+  while (box.childNodes.length > 200) box.removeChild(box.firstChild);
+  box.scrollTop = box.scrollHeight;
+}
+
+const RENDERABLE = { cube: "#4aa3ff", sphere: "#ff7a59", plane: "#6fcf97", cylinder: "#bb86fc" };
+const LABEL = { cube: "Kub", sphere: "Shar", plane: "Tekislik", cylinder: "Silindr" };
+let pm = null, usingMemory = false, sceneId = null, selectedId = null, saveTimer = null, dirty = false;
+let uid = null, loadedKey = null, ready = false, chromeDone = false, initPromise = null;
+let view = null, fpsTimer = null; const meshes = new Map();
+const curScene = () => pm.current.scenes.find(s => s.id === sceneId) || pm.current.scenes[0];
+
+// ---------- Buyruq o'rami: faqat dvigatel tasdiqlagandan keyin "✓" ----------
+function run(label, fn) {
+  try { const r = fn(); log(label + " ✓", "ok"); markDirty(); renderAll(); return r; }
+  catch (e) { log(label + " ✗ " + e.message, "err"); renderAll(); return null; }
+}
+function markDirty() { dirty = true; setStatus(); clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 1200); }
+async function saveNow() {
+  clearTimeout(saveTimer); if (!pm || !pm.current) return;
+  try { await pm.save(); dirty = false; setStatus(); log("Saqlandi ✓" + (usingMemory ? " (faqat xotirada!)" : ""), usingMemory ? "warn" : "ok"); }
+  catch (e) { log("Saqlash xatosi: " + e.message, "err"); }
+}
+function setStatus() {
+  if (!pm || !pm.current) return;
+  $("#mge-pname").textContent = pm.current.meta.name;
+  $("#mge-dot").className = "mge-dot" + (dirty ? " mge-dirty" : ""); $("#mge-dot").title = dirty ? "Saqlanmagan" : "Saqlangan";
+}
+
+// ---------- 3D ko'rinish (Babylon.js faqat birinchi ochilganda yuklanadi) ----------
+function loadScript(src) { return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = () => rej(new Error(src)); document.head.append(s); }); }
+async function ensureBabylon() {
+  if (window.BABYLON) return;
+  for (const src of ["https://cdn.babylonjs.com/babylon.js", "https://cdnjs.cloudflare.com/ajax/libs/babylonjs/6.49.0/babylon.min.js"]) {
+    try { await loadScript(src); if (window.BABYLON) { log("Babylon.js yuklandi: " + src, "ok"); return; } }
+    catch (e) { log("Yuklanmadi: " + e.message, "warn"); }
+  }
+  throw new Error("Babylon.js yuklanmadi (internet yoki CDN)");
+}
+async function initView() {
+  if (view) return;
+  const stage = $("#mge-stage");
+  try {
+    log("3D kutubxona yuklanmoqda…");
+    await ensureBabylon();
+    if (!BABYLON.Engine.isSupported()) throw new Error("Bu brauzerda WebGL yo'q");
+    const canvas = $("#mge-cv");
+    const engine = new BABYLON.Engine(canvas, true, { stencil: false }, true);
+    const scene = new BABYLON.Scene(engine);
+    scene.clearColor = new BABYLON.Color4(0.07, 0.06, 0.05, 1);
+    const cam = new BABYLON.ArcRotateCamera("mge_cam", -Math.PI / 2.4, Math.PI / 3, 12, BABYLON.Vector3.Zero(), scene);
+    cam.lowerRadiusLimit = 2; cam.upperRadiusLimit = 60; cam.wheelPrecision = 20; cam.attachControl(canvas, true);
+    new BABYLON.HemisphericLight("mge_hl", new BABYLON.Vector3(0.3, 1, 0.2), scene);
+    const lines = []; for (let i = -20; i <= 20; i += 2) { lines.push([new BABYLON.Vector3(-20, 0, i), new BABYLON.Vector3(20, 0, i)]); lines.push([new BABYLON.Vector3(i, 0, -20), new BABYLON.Vector3(i, 0, 20)]); }
+    const grid = BABYLON.MeshBuilder.CreateLineSystem("mge_grid", { lines }, scene); grid.color = new BABYLON.Color3(0.35, 0.3, 0.24); grid.isPickable = false;
+    scene.onPointerObservable.add(pi => {
+      if (pi.type !== BABYLON.PointerEventTypes.POINTERTAP) return;
+      const m = pi.pickInfo && pi.pickInfo.hit ? pi.pickInfo.pickedMesh : null;
+      select(m && m.metadata ? m.metadata.id : null);
+    });
+    new ResizeObserver(() => engine.resize()).observe(stage);
+    canvas.addEventListener("webglcontextlost", () => log("WebGL konteksti yo'qoldi (xotira yetishmadi?). Muhokamaga qayting va qayta oching.", "err"));
+    view = { engine, scene, cam, running: false };
+    applyPerf(); startView();
+  } catch (e) {
+    $("#mge-cv").style.display = "none";
+    if (!$(".mge-noview")) stage.append(h("div", { class: "mge-noview" }, "3D ko'rinish ishlamadi: " + e.message + ". Obyektlar ro'yxati va xususiyatlar baribir ishlaydi."));
+    log("3D ko'rinish ishlamadi: " + e.message, "err");
+  }
+}
+function startView() {
+  if (!view || view.running) return; view.running = true;
+  view.engine.runRenderLoop(() => view.scene.render()); view.engine.resize();
+  clearInterval(fpsTimer); fpsTimer = setInterval(() => { $("#mge-fps").textContent = Math.round(view.engine.getFps()) + " FPS"; }, 500);
+}
+function stopView() { if (!view || !view.running) return; view.running = false; view.engine.stopRenderLoop(); clearInterval(fpsTimer); }
+function applyPerf() { const low = !!(pm && pm.current && pm.current.settings.lowPerformance); if (view) view.engine.setHardwareScalingLevel(low ? 2 : 1); }
+function clearMeshes() { for (const m of meshes.values()) m.dispose(false, true); meshes.clear(); }
+function makeMesh(e) {
+  const B = BABYLON.MeshBuilder, s = view.scene; let m;
+  if (e.type === "cube") m = B.CreateBox(e.id, { size: 1 }, s);
+  else if (e.type === "sphere") m = B.CreateSphere(e.id, { diameter: 1, segments: 16 }, s);
+  else if (e.type === "cylinder") m = B.CreateCylinder(e.id, { height: 1, diameter: 1, tessellation: 24 }, s);
+  else m = B.CreateGround(e.id, { width: 1, height: 1 }, s);
+  const mat = new BABYLON.StandardMaterial(e.id + "_m", s);
+  mat.diffuseColor = BABYLON.Color3.FromHexString(RENDERABLE[e.type]); mat.backFaceCulling = false; m.material = mat;
+  m.metadata = { id: e.id, type: e.type }; return m;
+}
+function syncView() {
+  if (!view || !pm || !pm.current) return;
+  const alive = new Set(), D = Math.PI / 180;
+  for (const e of curScene().entities) {
+    if (!RENDERABLE[e.type]) continue; alive.add(e.id);
+    let m = meshes.get(e.id);
+    if (!m || m.metadata.type !== e.type) { if (m) m.dispose(false, true); m = makeMesh(e); meshes.set(e.id, m); }
+    const t = e.transform;
+    m.position.set(t.position[0], t.position[1], t.position[2]);
+    m.rotation.set(t.rotation[0] * D, t.rotation[1] * D, t.rotation[2] * D);
+    m.scaling.set(t.scale[0], t.scale[1], t.scale[2]);
+    if (e.id === selectedId) { m.enableEdgesRendering(); m.edgesWidth = 4; m.edgesColor = new BABYLON.Color4(1, 0.8, 0.2, 1); } else m.disableEdgesRendering();
+  }
+  for (const [id, m] of [...meshes]) if (!alive.has(id)) { m.dispose(false, true); meshes.delete(id); }
+}
+
+// ---------- Panellar ----------
+function select(id) { selectedId = id; renderAll(); if (id) openTab("insp"); }
+function renderAll() { if (!pm || !pm.current) return; setStatus(); renderHier(); renderInsp(); renderProjects(); syncView(); }
+
+function addEntity(type) {
+  if (!pm || !pm.current) return;
+  const sc = curScene(), n = sc.entities.length;
+  const r = run((LABEL[type] || type) + " qo'shish", () => Scene.createEntity(pm.current, sc.id, { type, name: LABEL[type] + " " + (n + 1), position: [(n % 5) * 2 - 4, type === "plane" ? 0 : 0.5, Math.floor(n / 5) * 2] }));
+  if (r) { selectedId = r.entityId; renderAll(); }
+}
+function delSelected() {
+  if (!selectedId) { log("Avval obyektni tanlang", "warn"); return; }
+  const id = selectedId; selectedId = null; run("Obyektni o'chirish", () => Scene.deleteEntity(pm.current, curScene().id, id));
+}
+
+function renderHier() {
+  const box = $("#mge-p-hier"); box.textContent = "";
+  const p = pm.current, sel = h("select", { onchange: ev => { sceneId = ev.target.value; selectedId = null; clearMeshes(); renderAll(); } });
+  p.scenes.forEach(s => { const o = h("option", { value: s.id }, s.name); if (s.id === curScene().id) o.selected = true; sel.append(o); });
+  box.append(h("div", { class: "mge-row" }, sel, h("button", { class: "mge-btn", onclick: () => { const nm = prompt("Sahna nomi", "Yangi sahna"); if (nm === null) return; const r = run("Sahna yaratish", () => Scene.createScene(p, nm)); if (r) { sceneId = r.sceneId; selectedId = null; clearMeshes(); renderAll(); } } }, "+ Sahna")));
+  const sc = curScene();
+  if (!sc.entities.length) box.append(h("div", { class: "mge-hint" }, "Sahna bo'sh. Pastdagi «+ Kub», «+ Shar» tugmalari bilan obyekt qo'shing."));
+  sc.entities.forEach(e => box.append(h("button", { class: "mge-btn mge-item" + (e.id === selectedId ? " mge-on" : ""), onclick: () => select(e.id) }, h("span", { class: "mge-ty" }, LABEL[e.type] || e.type), " " + e.name)));
+}
+
+function renderInsp() {
+  const box = $("#mge-p-insp"); box.textContent = "";
+  const e = selectedId && curScene().entities.find(x => x.id === selectedId);
+  if (!e) { box.append(h("div", { class: "mge-hint" }, "Obyekt tanlanmagan. Ko'rinishda yoki ro'yxatda obyektga bosing.")); return; }
+  const nm = h("input", { type: "text", value: e.name, maxlength: "60" });
+  nm.addEventListener("change", () => run("Nomni o'zgartirish", () => Scene.renameEntity(pm.current, curScene().id, e.id, nm.value)));
+  box.append(h("div", { class: "mge-row" }, h("b", {}, LABEL[e.type] || e.type), nm));
+  const inputs = {};
+  for (const [key, title] of [["position", "Joylashuv"], ["rotation", "Burilish °"], ["scale", "Masshtab"]]) {
+    const row = h("div", { class: "mge-row3" }, h("span", { class: "mge-lb" }, title));
+    inputs[key] = ["X", "Y", "Z"].map((ax, i) => {
+      const inp = h("input", { type: "number", step: "0.1", inputmode: "decimal", value: String(+e.transform[key][i].toFixed(4)), "aria-label": title + " " + ax });
+      inp.addEventListener("change", () => {
+        const v = inputs[key].map(x => parseFloat(x.value));
+        run(title + " o'zgartirish", () => Scene.updateTransform(pm.current, curScene().id, e.id, { [key]: v }));
+      });
+      row.append(inp); return inp;
+    });
+    box.append(row);
+  }
+}
+
+async function renderProjects() {
+  if (!pm || !pm.current) return;
+  let list = []; try { list = await pm.list(); } catch (e) { log("Ro'yxat xatosi: " + e.message, "err"); }
+  if (!pm || !pm.current) return;
+  const box = $("#mge-p-proj"); box.textContent = "";
+  box.append(h("div", { class: "mge-row" },
+    h("button", { class: "mge-btn mge-pri", onclick: newProject }, "+ Yangi 3D loyiha"),
+    h("button", { class: "mge-btn", onclick: () => $("#mge-file").click() }, "Import"),
+    h("button", { class: "mge-btn", onclick: exportCurrent }, "Eksport (JSON)")));
+  const low = h("input", { type: "checkbox" }); low.checked = !!pm.current.settings.lowPerformance;
+  low.addEventListener("change", () => { pm.current.settings.lowPerformance = low.checked; applyPerf(); markDirty(); log("Past quvvat rejimi: " + (low.checked ? "yoqildi" : "o'chirildi"), "ok"); });
+  box.append(h("label", { class: "mge-chk" }, low, " Past quvvat rejimi (past aniqlik, tezroq)"));
+  list.forEach(it => {
+    const cur = it.id === pm.current.meta.id;
+    box.append(h("div", { class: "mge-proj" + (cur ? " mge-on" : "") }, h("div", { class: "mge-pn" }, it.name + (it.broken ? " ⚠ " + it.error : "")),
+      h("div", { class: "mge-pb" },
+        it.broken ? "" : h("button", { class: "mge-btn", onclick: () => openProject(it.id) }, cur ? "Ochiq" : "Ochish"),
+        it.broken ? "" : h("button", { class: "mge-btn", onclick: () => renameProject(it.id, it.name) }, "Nomi"),
+        it.broken ? "" : h("button", { class: "mge-btn", onclick: () => dupProject(it.id) }, "Nusxa"),
+        h("button", { class: "mge-btn mge-dng", onclick: () => delProject(it.id, it.name) }, "O'chirish"))));
+  });
+}
+
+async function openProject(id) {
+  try { if (dirty) await saveNow(); await pm.open(id); sceneId = pm.current.settings.startScene; selectedId = null; clearMeshes(); applyPerf(); log("Ochildi: " + pm.current.meta.name, "ok"); renderAll(); }
+  catch (e) { log("Ochib bo'lmadi: " + e.message, "err"); }
+}
+async function newProject() {
+  const nm = prompt("Loyiha nomi", "Yangi loyiha"); if (nm === null) return;
+  try { if (dirty) await saveNow(); await pm.create({ name: nm, type: "3d" }); sceneId = pm.current.settings.startScene; selectedId = null; clearMeshes(); applyPerf(); log("Yaratildi: " + pm.current.meta.name, "ok"); renderAll(); }
+  catch (e) { log("Yaratib bo'lmadi: " + e.message, "err"); }
+}
+async function renameProject(id, old) { const nm = prompt("Yangi nom", old); if (nm === null) return; try { await pm.rename(id, nm); log("Nom o'zgardi ✓", "ok"); renderAll(); } catch (e) { log("Xato: " + e.message, "err"); } }
+async function dupProject(id) { try { const c = await pm.duplicate(id); log("Nusxa yaratildi: " + c.meta.name, "ok"); renderAll(); } catch (e) { log("Xato: " + e.message, "err"); } }
+async function delProject(id, name) {
+  if (!confirm("«" + name + "» butunlay o'chiriladi. Davom etasizmi?")) return;
+  try {
+    const wasCur = pm.current && pm.current.meta.id === id; await pm.remove(id); log("O'chirildi ✓", "ok");
+    if (wasCur) { const l = await pm.list(); const ok = l.find(x => !x.broken); if (ok) await openProject(ok.id); else { await pm.create({ name: "Yangi loyiha", type: "3d" }); sceneId = pm.current.settings.startScene; clearMeshes(); renderAll(); } } else renderAll();
+  } catch (e) { log("Xato: " + e.message, "err"); }
+}
+function exportCurrent() {
+  try {
+    const blob = new Blob([pm.exportJSON()], { type: "application/json" }), a = h("a", { href: URL.createObjectURL(blob), download: pm.current.meta.name.replace(/[^\w.-]+/g, "_") + ".maryam.json" });
+    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); log("Eksport: fayl yuklab olishga yuborildi (qurilmada saqlanganini tekshiring)", "ok");
+  } catch (e) { log("Eksport xatosi: " + e.message, "err"); }
+}
+
+// ---------- Tablar va umumiy boshqaruv ----------
+function openTab(name) {
+  $$(".mge-tab").forEach(t => t.classList.toggle("mge-on", t.dataset.t === name));
+  $$(".mge-pp").forEach(p => p.hidden = p.id !== "mge-p-" + name);
+  root.classList.remove("mge-collapsed");
+}
+function setupChrome() {
+  if (chromeDone) return; chromeDone = true;
+  $$(".mge-tab").forEach(t => t.addEventListener("click", () => { if (t.classList.contains("mge-on")) root.classList.toggle("mge-collapsed"); else openTab(t.dataset.t); }));
+  $("#mge-save").addEventListener("click", saveNow);
+  $("#mge-close").addEventListener("click", () => closeEngine());
+  $("#mge-file").addEventListener("change", async ev => {
+    const f = ev.target.files[0]; ev.target.value = ""; if (!f) return;
+    try { if (f.size > 20e6) throw new Error("Fayl juda katta (>20 MB)"); const p = await pm.importJSON(await f.text()); sceneId = p.settings.startScene; selectedId = null; clearMeshes(); applyPerf(); log("Import ✓: " + p.meta.name, "ok"); renderAll(); }
+    catch (e) { log("Import xatosi: " + e.message, "err"); }
+  });
+  $$("[data-mge-add]").forEach(b => b.addEventListener("click", () => addEntity(b.dataset.mgeAdd)));
+  $("#mge-del").addEventListener("click", delSelected);
+  window.addEventListener("error", e => { if (isOpen()) log("JS xato: " + e.message, "err"); });
+  window.addEventListener("unhandledrejection", e => { if (isOpen()) log("Va'da xatosi: " + (e.reason && e.reason.message || e.reason), "err"); });
+  window.addEventListener("beforeunload", () => { if (dirty && pm) pm.save().catch(() => {}); });
+  document.addEventListener("visibilitychange", () => { if (document.hidden && dirty) saveNow(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && isOpen() && !e.defaultPrevented) closeEngine(); });
+}
+
+// ---------- Foydalanuvchiga bog'langan ishga tushirish ----------
+function resetState() { clearMeshes(); selectedId = null; sceneId = null; pm = null; dirty = false; clearTimeout(saveTimer); usingMemory = false; }
+async function ensureInit() {
+  const key = uid || "guest";
+  if (ready && loadedKey === key) return;
+  if (initPromise) return initPromise;
+  initPromise = (async () => {
+    if (ready && pm && dirty) await saveNow();
+    resetState(); setupChrome(); openTab("hier");
+    let storage; try { storage = new IndexedDBStorage("maryam-ge-" + key); await storage.list(); }
+    catch (e) { storage = new MemoryStorage(); usingMemory = true; log("IndexedDB ishlamadi (" + e.message + "). Loyiha FAQAT xotirada, sahifa yopilsa yo'qoladi!", "warn"); }
+    pm = new ProjectManager(storage);
+    const l = (await pm.list()).find(x => !x.broken);
+    if (l) await pm.open(l.id); else await pm.create({ name: "Birinchi loyiha", type: "3d" });
+    sceneId = pm.current.settings.startScene; loadedKey = key; ready = true;
+    log("Maryam Game Engine " + ENGINE_VERSION + " tayyor. Loyiha: " + pm.current.meta.name, "ok");
+    renderAll();
+  })();
+  try { await initPromise; } finally { initPromise = null; }
+}
+async function openEngine() {
+  root.classList.add("mge-open"); root.setAttribute("aria-hidden", "false");
+  try { await ensureInit(); await initView(); renderAll(); startView(); }
+  catch (e) { log("Ishga tushmadi: " + e.message, "err"); }
+}
+async function closeEngine() {
+  if (dirty) await saveNow();
+  root.classList.remove("mge-open"); root.setAttribute("aria-hidden", "true"); stopView();
+}
+
+// ---------- Maryam bilan ulanish (mavjud kodga tegmasdan) ----------
+const menuBtn = document.getElementById("menuGameBtn");
+if (menuBtn) menuBtn.addEventListener("click", () => { const pmEl = document.getElementById("plusMenu"); if (pmEl) pmEl.classList.remove("open"); openEngine(); });
+if (window.MaryamFBReady) window.MaryamFBReady.then(b => {
+  if (!b || !b.ok || !b.api || !b.api.onAuthChanged) return;
+  b.api.onAuthChanged(u => { const nu = u ? u.uid : null; if (nu === uid) return; uid = nu; if (isOpen()) closeEngine(); });
+}).catch(() => {});
+window.MaryamGE = Object.freeze({ open: openEngine, close: closeEngine, version: ENGINE_VERSION });
+
 })();
 </script>
 </body>
